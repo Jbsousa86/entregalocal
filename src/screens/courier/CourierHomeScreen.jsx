@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { collection, query, where, onSnapshot, doc, setDoc, getDoc } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
-import { auth, db } from '../../firebaseClient';
+import { auth, db, messaging, getToken } from '../../firebaseClient';
 import { useNavigate } from 'react-router-dom';
 import backgroundImage from '../../assets/image.png';
 
@@ -34,6 +34,33 @@ export default function CourierHomeScreen() {
     }).catch(err => console.error("Erro ao desbloquear áudio:", err));
   };
 
+  // Função para solicitar permissão de notificações e salvar token FCM
+  const requestNotificationPermission = async () => {
+    if (!auth.currentUser) return;
+
+    try {
+      const permission = await Notification.requestPermission();
+      if (permission === 'granted') {
+        const token = await getToken(messaging, {
+          vapidKey: import.meta.env.VITE_FIREBASE_VAPID_KEY // O usuário precisará adicionar isso ao .env
+        });
+
+        if (token) {
+          console.log("FCM Token:", token);
+          await setDoc(doc(db, 'couriers', auth.currentUser.uid), {
+            fcmToken: token
+          }, { merge: true });
+        } else {
+          console.warn("Nenhum token FCM recebido. Verifique o VAPID key.");
+        }
+      } else {
+        console.warn("Permissão de notificação negada.");
+      }
+    } catch (error) {
+      console.error("Erro ao solicitar permissão de notificação:", error);
+    }
+  };
+
   // 1. Verificar status atual do entregador ao carregar
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -57,9 +84,10 @@ export default function CourierHomeScreen() {
     try {
       const newStatus = !isOnline;
 
-      // Se estiver ficando online, desbloqueia o áudio através da interação do usuário
+      // Se estiver ficando online, desbloqueia o áudio e solicita permissão de notificações
       if (newStatus) {
         unlockAudio();
+        requestNotificationPermission();
       }
 
       // Usar setDoc com merge: true cria o documento se ele não existir

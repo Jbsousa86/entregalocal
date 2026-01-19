@@ -18,11 +18,23 @@ export default function CourierHomeScreen() {
   const [audio] = useState(new Audio("https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3"));
 
   const playNotification = () => {
+    console.log("Tentando tocar som de notificação...");
     // Tenta tocar o som. Se ainda não foi desbloqueado, o erro será capturado no catch.
     audio.currentTime = 0;
-    audio.play().catch(err => {
+    audio.play().then(() => {
+      console.log("Som reproduzido com sucesso.");
+    }).catch(err => {
       console.warn("Áudio ainda não desbloqueado ou erro na reprodução:", err);
     });
+
+    // Disparar notificação local do navegador (além do som)
+    if (Notification.permission === 'granted') {
+      new Notification("Nova Entrega Disponível!", {
+        body: "Abra o aplicativo para ver os detalhes da entrega.",
+        icon: '/logo.png',
+        tag: 'new-delivery' // Evita múltiplas notificações iguais acumuladas
+      });
+    }
   };
 
   const unlockAudio = () => {
@@ -32,6 +44,11 @@ export default function CourierHomeScreen() {
       audio.currentTime = 0;
       console.log("Áudio desbloqueado com sucesso.");
     }).catch(err => console.error("Erro ao desbloquear áudio:", err));
+
+    // Também solicitar permissão de notificação se ainda não tiver
+    if (Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
   };
 
   // Função para solicitar permissão de notificações e salvar token FCM
@@ -40,6 +57,7 @@ export default function CourierHomeScreen() {
 
     try {
       const permission = await Notification.requestPermission();
+      console.log("Permissão de notificação:", permission);
       if (permission === 'granted') {
         const token = await getToken(messaging, {
           vapidKey: import.meta.env.VITE_FIREBASE_VAPID_KEY // O usuário precisará adicionar isso ao .env
@@ -88,9 +106,10 @@ export default function CourierHomeScreen() {
       if (newStatus) {
         unlockAudio();
         requestNotificationPermission();
+        setIsInitialLoad(true); // Reseta para o próximo snapshot
       }
 
-      // Usar setDoc com merge: true cria o documento se ele não existir
+      // Usar setDoc con merge: true cria o documento se ele não existir
       await setDoc(doc(db, 'couriers', auth.currentUser.uid), {
         isOnline: newStatus
       }, { merge: true });
@@ -116,10 +135,11 @@ export default function CourierHomeScreen() {
         list.push({ id: doc.id, ...doc.data() });
       });
 
-      // Se não for o carregamento inicial e houver novas entregas adicionadas
+      // Se não for o carregamento inicial e houver NOVAS entregas (added)
       if (!isInitialLoad) {
         const hasNew = querySnapshot.docChanges().some(change => change.type === 'added');
         if (hasNew) {
+          console.log("Novo pedido detectado via Snapshot!");
           playNotification();
         }
       }
@@ -129,7 +149,7 @@ export default function CourierHomeScreen() {
     });
 
     return () => unsubscribe();
-  }, [isOnline]);
+  }, [isOnline, isInitialLoad]);
 
   // 4. Verificar se já existe entrega ativa vinculada a este entregador
   useEffect(() => {

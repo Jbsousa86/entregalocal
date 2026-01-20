@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { collection, query, where, onSnapshot, doc, setDoc, getDoc } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
-import { auth, db, messaging, getToken } from '../../firebaseClient';
+import { auth, db, messaging, getToken, onMessage } from '../../firebaseClient';
 import { useNavigate } from 'react-router-dom';
 import backgroundImage from '../../assets/image.png';
 
@@ -13,6 +13,8 @@ export default function CourierHomeScreen() {
   const [deliveries, setDeliveries] = useState([]);
   const [hasActiveDelivery, setHasActiveDelivery] = useState(false);
   const isInitialLoad = useRef(true);
+  const notifiedIds = useRef(new Set());
+  const mountTime = useRef(Date.now());
   const navigate = useNavigate();
 
   // Inicializar o objeto de áudio persistente para evitar atrasos e permitir desbloqueio no mobile
@@ -51,6 +53,16 @@ export default function CourierHomeScreen() {
       Notification.requestPermission();
     }
   };
+
+  // 0. Ouvir mensagens em primeiro plano (quando o app está aberto)
+  useEffect(() => {
+    const unsubscribe = onMessage(messaging, (payload) => {
+      console.log("Mensagem em primeiro plano recebida:", payload);
+      // O playNotification já lida com o som e a notificação local do navegador
+      playNotification();
+    });
+    return () => unsubscribe();
+  }, [messaging]);
 
   // Função para solicitar permissão de notificações e salvar token FCM
   const requestNotificationPermission = async () => {
@@ -132,22 +144,36 @@ export default function CourierHomeScreen() {
     const q = query(collection(db, 'deliveries'), where('status', '==', 'pending'));
 
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
+      console.log(`Snapshot recebido: ${querySnapshot.size} pedidos pendentes.`);
       const list = [];
       querySnapshot.forEach((doc) => {
         list.push({ id: doc.id, ...doc.data() });
       });
 
-      // Se não for o carregamento inicial e houver NOVAS entregas (added)
+      // Lógica de notificação mais robusta
       if (!isInitialLoad.current) {
-        const hasNew = querySnapshot.docChanges().some(change => change.type === 'added');
-        if (hasNew) {
-          console.log("Novo pedido detectado via Snapshot!");
-          playNotification();
-        }
+        querySnapshot.docChanges().forEach(change => {
+          if (change.type === 'added') {
+            const data = change.doc.data();
+            const id = change.doc.id;
+
+            // Só notifica se ainda não notificamos este ID nesta sessão
+            // E se o pedido foi criado após o carregamento desta tela (evita notificar antigos no refresh)
+            const createdAt = data.createdAt?.toMillis ? data.createdAt.toMillis() : 0;
+
+            if (!notifiedIds.current.has(id) && createdAt > mountTime.current - 5000) {
+              console.log("🔔 Novo pedido detectado:", id);
+              notifiedIds.current.add(id);
+              playNotification();
+            }
+          }
+        });
       }
 
       setDeliveries(list);
       isInitialLoad.current = false;
+    }, (error) => {
+      console.error("Erro no listener de entregas:", error);
     });
 
     return () => unsubscribe();

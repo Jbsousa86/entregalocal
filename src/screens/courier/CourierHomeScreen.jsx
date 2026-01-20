@@ -12,6 +12,7 @@ export default function CourierHomeScreen() {
   const [photoURL, setPhotoURL] = useState('');
   const [deliveries, setDeliveries] = useState([]);
   const [hasActiveDelivery, setHasActiveDelivery] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0); // Para forçar o re-render do listener
   const isInitialLoad = useRef(true);
   const notifiedIds = useRef(new Set());
   const mountTime = useRef(Date.now());
@@ -177,7 +178,25 @@ export default function CourierHomeScreen() {
     });
 
     return () => unsubscribe();
+  }, [isOnline, refreshKey]);
+
+  // 4. Resetar o listener quando o app volta do background (ajuda no mobile)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && isOnline) {
+        console.log("App voltou ao primeiro plano, atualizando lista...");
+        setRefreshKey(prev => prev + 1);
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [isOnline]);
+
+  const manualRefresh = () => {
+    console.log("🔄 Atualização manual solicitada");
+    isInitialLoad.current = true;
+    setRefreshKey(prev => prev + 1);
+  };
 
   // 4. Verificar se já existe entrega ativa vinculada a este entregador
   useEffect(() => {
@@ -305,9 +324,27 @@ export default function CourierHomeScreen() {
         </div>
 
 
-        <h3 className="mb-4" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          📦 Entregas disponíveis
-        </h3>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+          <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+            📦 Entregas disponíveis
+          </h3>
+          <button
+            onClick={manualRefresh}
+            style={{
+              width: 'auto',
+              padding: '6px 12px',
+              fontSize: '12px',
+              backgroundColor: 'var(--background)',
+              color: 'var(--text-main)',
+              border: '1px solid var(--border)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px'
+            }}
+          >
+            🔄 Atualizar
+          </button>
+        </div>
 
         {!isOnline && (
           <div className="text-center" style={{ padding: '20px', backgroundColor: 'var(--primary-light)', borderRadius: 'var(--radius)', color: 'var(--secondary)' }}>

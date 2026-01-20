@@ -26,4 +26,14 @@ export const db = getFirestore(app);
 export const storage = getStorage(app);
 export const messaging = getMessaging(app);
 
+// Ativar persistência offline (importante para mobile)
+import { enableMultiTabIndexedDbPersistence } from 'firebase/firestore';
+enableMultiTabIndexedDbPersistence(db).catch((err) => {
+  if (err.code === 'failed-precondition') {
+    console.warn("Persistência falhou: múltiplas abas abertas.");
+  } else if (err.code === 'unimplemented') {
+    console.warn("O navegador não suporta persistência.");
+  }
+});
+
 export { getToken, onMessage };

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { collection, query, where, onSnapshot, doc, setDoc, getDoc } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth, db, messaging, getToken } from '../../firebaseClient';
@@ -12,7 +12,7 @@ export default function CourierHomeScreen() {
   const [photoURL, setPhotoURL] = useState('');
   const [deliveries, setDeliveries] = useState([]);
   const [hasActiveDelivery, setHasActiveDelivery] = useState(false);
-  const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const isInitialLoad = useRef(true);
   const navigate = useNavigate();
 
   // Inicializar o objeto de áudio persistente para evitar atrasos e permitir desbloqueio no mobile
@@ -108,7 +108,7 @@ export default function CourierHomeScreen() {
       if (newStatus) {
         unlockAudio();
         requestNotificationPermission();
-        setIsInitialLoad(true); // Reseta para o próximo snapshot
+        isInitialLoad.current = true; // Reseta para o próximo snapshot
       }
 
       // Usar setDoc con merge: true cria o documento se ele não existir
@@ -138,7 +138,7 @@ export default function CourierHomeScreen() {
       });
 
       // Se não for o carregamento inicial e houver NOVAS entregas (added)
-      if (!isInitialLoad) {
+      if (!isInitialLoad.current) {
         const hasNew = querySnapshot.docChanges().some(change => change.type === 'added');
         if (hasNew) {
           console.log("Novo pedido detectado via Snapshot!");
@@ -147,11 +147,11 @@ export default function CourierHomeScreen() {
       }
 
       setDeliveries(list);
-      setIsInitialLoad(false);
+      isInitialLoad.current = false;
     });
 
     return () => unsubscribe();
-  }, [isOnline, isInitialLoad]);
+  }, [isOnline]);
 
   // 4. Verificar se já existe entrega ativa vinculada a este entregador
   useEffect(() => {

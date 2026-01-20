@@ -8,6 +8,7 @@ import backgroundImage from '../../assets/image.png';
 export default function CourierHomeScreen() {
   const [isOnline, setIsOnline] = useState(false);
   const [courierName, setCourierName] = useState('');
+  const [courierArea, setCourierArea] = useState('');
   const [photoURL, setPhotoURL] = useState('');
   const [deliveries, setDeliveries] = useState([]);
   const [hasActiveDelivery, setHasActiveDelivery] = useState(false);
@@ -89,6 +90,7 @@ export default function CourierHomeScreen() {
           const data = docSnap.data();
           setIsOnline(data.isOnline === true);
           setCourierName(data.name || '');
+          setCourierArea(data.area || '');
           setPhotoURL(data.photoURL || '');
         }
       }
@@ -230,6 +232,16 @@ export default function CourierHomeScreen() {
           }}>
             {courierName || 'Portal do Entregador'}
           </h2>
+          {courierArea && (
+            <p style={{
+              color: 'var(--primary)',
+              fontWeight: '600',
+              fontSize: '14px',
+              marginBottom: '8px'
+            }}>
+              📍 {courierArea}
+            </p>
+          )}
           {courierName && (
             <p style={{
               color: 'var(--primary)',
@@ -244,8 +256,8 @@ export default function CourierHomeScreen() {
         </div>
 
         <div className="mb-6" style={{ display: 'flex', gap: '12px' }}>
-          <button onClick={() => navigate('/courier/history')}>📜 Histórico</button>
-          <button onClick={() => navigate('/courier/profile')} style={{ backgroundColor: 'var(--text-muted)' }}>👤 Perfil</button>
+          <button onClick={() => navigate('/courier/history')} style={{ flex: 1 }}>📜 Histórico e Relatórios</button>
+          <button onClick={() => navigate('/courier/profile')} style={{ backgroundColor: 'var(--text-muted)', flex: 1 }}>👤 Meu Perfil</button>
         </div>
 
         <div className="mb-8" style={{ padding: '24px', backgroundColor: 'var(--background)', borderRadius: 'var(--radius)', border: '1px solid var(--border)', textAlign: 'center', boxShadow: 'var(--shadow-sm)' }}>
@@ -265,6 +277,7 @@ export default function CourierHomeScreen() {
             {isOnline ? '⏸️ Ficar Offline' : '🚀 Ficar Online'}
           </button>
         </div>
+
 
         <h3 className="mb-4" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           📦 Entregas disponíveis

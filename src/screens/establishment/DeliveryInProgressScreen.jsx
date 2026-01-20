@@ -15,7 +15,7 @@ export default function DeliveryInProgressScreen() {
       if (user) {
         // Buscar entregas deste estabelecimento
         const q = query(
-          collection(db, 'deliveries'), 
+          collection(db, 'deliveries'),
           where('establishmentId', '==', user.uid)
         );
 
@@ -43,20 +43,33 @@ export default function DeliveryInProgressScreen() {
     <div className="delivery-in-progress-screen">
       <h2>Entregas em Andamento</h2>
       <button onClick={() => navigate('/establishment/home')} style={{ marginBottom: '20px' }}>Voltar</button>
-      
+
       {deliveries.length === 0 ? (
         <p>Nenhuma entrega em andamento (aceita por entregador).</p>
       ) : (
         deliveries.map(item => (
           <div key={item.id} style={{ border: '1px solid #ccc', padding: '15px', margin: '10px 0', borderRadius: '8px' }}>
             <p><strong>Status:</strong> {
-              item.status === 'pending' ? <span style={{color: 'orange'}}>Aguardando entregador</span> :
-              item.status === 'accepted' ? <span style={{color: 'blue'}}>Aceita pelo entregador</span> :
-              item.status === 'arrived_pickup' ? <span style={{color: 'purple'}}>Entregador no local</span> :
-              <span style={{color: 'green'}}>Em rota de entrega</span>
+              item.status === 'pending' ? <span style={{ color: 'orange' }}>Aguardando entregador</span> :
+                item.status === 'accepted' ? <span style={{ color: 'blue' }}>Aceita pelo entregador</span> :
+                  item.status === 'arrived_pickup' ? <span style={{ color: 'purple' }}>Entregador no local</span> :
+                    <span style={{ color: 'green' }}>Em rota de entrega</span>
             }</p>
             <p><strong>Entregador:</strong> {item.courierName || 'Aguardando...'}</p>
-            <p><strong>Destino:</strong> {item.deliveryAddress}</p>
+            {['pending', 'accepted', 'arrived_pickup'].includes(item.status) && (
+              <div style={{
+                backgroundColor: 'var(--surface)',
+                padding: '10px',
+                borderRadius: '6px',
+                marginTop: '10px',
+                border: '1px dashed var(--primary)',
+                textAlign: 'center'
+              }}>
+                <span style={{ fontSize: '13px', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Código para o entregador:</span>
+                <span style={{ fontSize: '24px', fontWeight: 'bold', color: 'var(--primary)', letterSpacing: '4px' }}>{item.pickupCode}</span>
+              </div>
+            )}
+            <p style={{ marginTop: '10px' }}><strong>Destino:</strong> {item.deliveryAddress}</p>
             <p><strong>Valor:</strong> R$ {item.value}</p>
           </div>
         ))

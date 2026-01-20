@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { doc, getDoc, updateDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { signOut, onAuthStateChanged } from 'firebase/auth';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { auth, db, storage } from '../../firebaseClient';
@@ -8,11 +8,14 @@ import { useNavigate } from 'react-router-dom';
 export default function CourierProfileScreen() {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [statsLoading, setStatsLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [allDeliveries, setAllDeliveries] = useState([]);
-  const [stats, setStats] = useState({ totalCount: 0, totalEarnings: 0 });
-  const [filterRange, setFilterRange] = useState('all'); // all, today, week, month
+  const [isEditing, setIsEditing] = useState(false);
+
+  // Estados para edição
+  const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [vehicle, setVehicle] = useState('');
+  const [area, setArea] = useState('');
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -23,9 +26,12 @@ export default function CourierProfileScreen() {
           const courierSnap = await getDoc(courierRef);
 
           if (courierSnap.exists()) {
-            setProfile(courierSnap.data());
-            // Buscar todas as entregas do entregador uma única vez
-            await fetchAllDeliveries(user.uid);
+            const data = courierSnap.data();
+            setProfile(data);
+            setName(data.name || '');
+            setPhone(data.phone || '');
+            setVehicle(data.vehicle || '');
+            setArea(data.area || '');
           } else {
             const estRef = doc(db, 'establishments', user.uid);
             const estSnap = await getDoc(estRef);
@@ -46,64 +52,6 @@ export default function CourierProfileScreen() {
     return () => unsubscribe();
   }, [navigate]);
 
-  const fetchAllDeliveries = async (userId) => {
-    setStatsLoading(true);
-    try {
-      const q = query(
-        collection(db, 'deliveries'),
-        where('courierId', '==', userId),
-        where('status', '==', 'delivered')
-      );
-      const querySnapshot = await getDocs(q);
-      const list = [];
-      querySnapshot.forEach((doc) => {
-        const data = doc.data();
-        // Converter Timestamp do Firebase para Date de JS
-        const date = data.createdAt ? new Date(data.createdAt.seconds * 1000) : new Date(0);
-        list.push({ ...data, jsDate: date });
-      });
-      setAllDeliveries(list);
-    } catch (err) {
-      console.error("Erro ao buscar entregas:", err);
-    } finally {
-      setStatsLoading(false);
-    }
-  };
-
-  // Atualizar estatísticas sempre que a lista de entregas ou o filtro mudar
-  useEffect(() => {
-    calculateStats();
-  }, [allDeliveries, filterRange]);
-
-  const calculateStats = () => {
-    let filtered = allDeliveries;
-
-    if (filterRange !== 'all') {
-      const now = new Date();
-      let startTime = 0;
-
-      if (filterRange === 'today') {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        startTime = today.getTime();
-      } else if (filterRange === 'week') {
-        const week = new Date();
-        week.setDate(now.getDate() - 7);
-        startTime = week.getTime();
-      } else if (filterRange === 'month') {
-        const month = new Date();
-        month.setDate(now.getDate() - 30);
-        startTime = month.getTime();
-      }
-
-      filtered = allDeliveries.filter(d => d.jsDate.getTime() >= startTime);
-    }
-
-    let count = filtered.length;
-    let earnings = filtered.reduce((acc, curr) => acc + Number(curr.value || 0), 0);
-
-    setStats({ totalCount: count, totalEarnings: earnings });
-  };
 
   const handleImageChange = async (e) => {
     if (e.target.files[0] && auth.currentUser) {
@@ -131,6 +79,23 @@ export default function CourierProfileScreen() {
   const handleLogout = async () => {
     await signOut(auth);
     navigate('/');
+  };
+
+  const handleSave = async () => {
+    if (!auth.currentUser) return;
+    try {
+      const docRef = doc(db, 'couriers', auth.currentUser.uid);
+      await updateDoc(docRef, {
+        name,
+        phone
+      });
+      setProfile({ ...profile, name, phone });
+      setIsEditing(false);
+      alert('Perfil atualizado com sucesso!');
+    } catch (error) {
+      console.error("Erro ao atualizar:", error);
+      alert("Erro ao atualizar perfil.");
+    }
   };
 
   if (loading) return <p className="text-center p-10">Carregando perfil...</p>;
@@ -166,11 +131,12 @@ export default function CourierProfileScreen() {
         </div>
         <button
           onClick={() => document.getElementById('profilePicInput').click()}
-          disabled={uploading}
+          disabled={uploading || isEditing}
           style={{
             padding: '8px 16px', fontSize: '14px', width: 'auto',
-            backgroundColor: 'transparent', color: 'var(--primary)',
-            border: '1px solid var(--primary)', boxShadow: 'none'
+            backgroundColor: 'transparent', color: isEditing ? 'var(--text-muted)' : 'var(--primary)',
+            border: `1px solid ${isEditing ? 'var(--border)' : 'var(--primary)'}`, boxShadow: 'none',
+            cursor: isEditing ? 'not-allowed' : 'pointer'
           }}
         >
           {uploading ? 'Enviando...' : 'Alterar Foto'}
@@ -178,58 +144,44 @@ export default function CourierProfileScreen() {
         <input id="profilePicInput" type="file" accept="image/*" onChange={handleImageChange} style={{ display: 'none' }} />
       </div>
 
-      <h3 className="mb-2">Relatório de Atividades</h3>
-
-      <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', overflowX: 'auto', paddingBottom: '4px' }}>
-        {[
-          { id: 'today', label: 'Hoje' },
-          { id: 'week', label: '7 dias' },
-          { id: 'month', label: '30 dias' },
-          { id: 'all', label: 'Tudo' }
-        ].map(filter => (
-          <button
-            key={filter.id}
-            onClick={() => setFilterRange(filter.id)}
-            style={{
-              padding: '6px 12px', fontSize: '12px', width: 'auto',
-              backgroundColor: filterRange === filter.id ? 'var(--primary)' : 'var(--background)',
-              color: filterRange === filter.id ? 'white' : 'var(--text)',
-              border: `1px solid ${filterRange === filter.id ? 'var(--primary)' : 'var(--border)'}`,
-              borderRadius: '20px', boxShadow: 'none'
-            }}
-          >
-            {filter.label}
-          </button>
-        ))}
-      </div>
-
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '24px', opacity: statsLoading ? 0.6 : 1 }}>
-        <div style={{ padding: '16px', backgroundColor: 'var(--primary-light)', borderRadius: 'var(--radius)', textAlign: 'center', border: '1px solid var(--primary)' }}>
-          <p style={{ fontSize: '11px', color: 'var(--primary)', fontWeight: '700', textTransform: 'uppercase', marginBottom: '8px' }}>Total Entregas</p>
-          <p style={{ fontSize: '24px', fontWeight: '800', color: 'var(--secondary)' }}>{stats.totalCount}</p>
-        </div>
-        <div style={{ padding: '16px', backgroundColor: 'var(--primary-light)', borderRadius: 'var(--radius)', textAlign: 'center', border: '1px solid var(--primary)' }}>
-          <p style={{ fontSize: '11px', color: 'var(--primary)', fontWeight: '700', textTransform: 'uppercase', marginBottom: '8px' }}>Ganhos Totais</p>
-          <p style={{ fontSize: '22px', fontWeight: '800', color: 'var(--secondary)' }}>R$ {stats.totalEarnings.toFixed(2)}</p>
-        </div>
-      </div>
 
       <h3 className="mb-4">Dados Pessoais</h3>
       {profile ? (
         <div className="mb-6" style={{ textAlign: 'left', padding: '20px', backgroundColor: 'var(--background)', borderRadius: 'var(--radius)', border: '1px solid var(--border)' }}>
-          <p className="mb-4"><strong>👤 Nome:</strong> {profile.name}</p>
-          <p className="mb-4"><strong>📧 Email:</strong> {profile.email}</p>
-          <p className="mb-4"><strong>📞 Telefone:</strong> {profile.phone}</p>
-          <p className="mb-4"><strong>🏍️ Veículo:</strong> {profile.vehicle}</p>
-          <p><strong>📍 Área:</strong> {profile.area}</p>
+          {isEditing ? (
+            <>
+              <div className="form-group mb-4">
+                <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500' }}>Nome:</label>
+                <input type="text" value={name} onChange={e => setName(e.target.value)} />
+              </div>
+              <div className="form-group mb-6">
+                <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500' }}>Telefone:</label>
+                <input type="text" value={phone} onChange={e => setPhone(e.target.value)} />
+              </div>
+              <button onClick={handleSave} className="mb-4">Salvar Alterações</button>
+              <button onClick={() => setIsEditing(false)} style={{ backgroundColor: 'var(--text-muted)' }}>Cancelar</button>
+            </>
+          ) : (
+            <>
+              <p className="mb-4"><strong>👤 Nome:</strong> {profile.name}</p>
+              <p className="mb-4"><strong>📧 Email:</strong> {profile.email}</p>
+              <p className="mb-4"><strong>📞 Telefone:</strong> {profile.phone}</p>
+              <p className="mb-4"><strong>🏍️ Veículo:</strong> {profile.vehicle}</p>
+              <p className="mb-4"><strong>📍 Área de Atuação:</strong> {profile.area}</p>
+              <button onClick={() => setIsEditing(true)}>Editar Dados</button>
+            </>
+          )}
         </div>
       ) : (
         <div className="text-center mb-6"><p>Perfil não encontrado.</p></div>
       )}
 
-      <button onClick={() => navigate('/courier/home')} className="mb-4">Voltar ao Início</button>
-      <button onClick={() => navigate('/courier/history')} className="mb-4">Ver Histórico</button>
-      <button onClick={handleLogout} style={{ backgroundColor: 'var(--error)' }}>Sair da Conta</button>
+      {!isEditing && (
+        <>
+          <button onClick={() => navigate('/courier/home')} className="mb-4">Voltar ao Início</button>
+          <button onClick={handleLogout} style={{ backgroundColor: 'var(--error)' }}>Sair da Conta</button>
+        </>
+      )}
     </div>
   );
 }

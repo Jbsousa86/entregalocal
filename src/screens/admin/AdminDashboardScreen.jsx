@@ -188,15 +188,69 @@ export default function AdminDashboardScreen() {
         <div className="admin-dashboard fade-in" style={{ padding: '10px', maxWidth: '1200px', margin: '0 auto' }}>
             <div style={{
                 display: 'flex',
-                flexDirection: window.innerWidth < 600 ? 'column' : 'row',
-                justifyContent: 'space-between',
-                alignItems: window.innerWidth < 600 ? 'flex-start' : 'center',
-                marginBottom: '30px',
-                gap: '15px'
+                flexDirection: 'column',
+                gap: '20px',
+                marginBottom: '30px'
             }}>
-                <h2 style={{ fontSize: '1.5rem' }}>📊 Painel Administrativo</h2>
-                <div style={{ display: 'flex', gap: '10px' }}>
-                    <button onClick={handleLogout} style={{ backgroundColor: 'var(--error)', width: 'auto', padding: '10px 20px', fontSize: '14px' }}>Sair</button>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+                    <h2 style={{ fontSize: '1.5rem', margin: 0 }}>📊 Painel Administrativo</h2>
+                    <button onClick={handleLogout} style={{
+                        backgroundColor: 'var(--error)',
+                        width: 'auto',
+                        padding: '10px 20px',
+                        fontSize: '14px',
+                        borderRadius: 'var(--radius)',
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                    }}>Sair</button>
+                </div>
+
+                <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                    gap: '12px'
+                }}>
+                    <button
+                        onClick={() => navigate('/admin/reports/establishments')}
+                        style={{
+                            backgroundColor: 'white',
+                            color: 'var(--text)',
+                            border: '1px solid var(--border)',
+                            width: '100%',
+                            padding: '15px',
+                            fontSize: '14px',
+                            fontWeight: '600',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '10px',
+                            borderRadius: 'var(--radius)',
+                            boxShadow: '0 2px 5px rgba(0,0,0,0.05)',
+                            transition: 'all 0.2s ease'
+                        }}
+                    >
+                        <span style={{ fontSize: '20px' }}>🏪</span> Relatório por Lojista
+                    </button>
+                    <button
+                        onClick={() => navigate('/admin/reports/couriers')}
+                        style={{
+                            backgroundColor: 'white',
+                            color: 'var(--text)',
+                            border: '1px solid var(--border)',
+                            width: '100%',
+                            padding: '15px',
+                            fontSize: '14px',
+                            fontWeight: '600',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '10px',
+                            borderRadius: 'var(--radius)',
+                            boxShadow: '0 2px 5px rgba(0,0,0,0.05)',
+                            transition: 'all 0.2s ease'
+                        }}
+                    >
+                        <span style={{ fontSize: '20px' }}>🛵</span> Relatório por Entregador
+                    </button>
                 </div>
             </div>
 
@@ -237,75 +291,6 @@ export default function AdminDashboardScreen() {
                 </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px' }}>
-                {/* Tabela de Estabelecimentos */}
-                <div className="card" style={{ padding: '15px' }}>
-                    <h3 className="mb-4" style={{ fontSize: '1.2rem' }}>🏪 Por Estabelecimento</h3>
-                    <div style={{ overflowX: 'auto' }}>
-                        <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '450px' }}>
-                            <thead>
-                                <tr style={{ borderBottom: '2px solid var(--border)', textAlign: 'left' }}>
-                                    <th style={{ padding: '10px' }}>Nome</th>
-                                    <th style={{ padding: '10px' }}>Qtd</th>
-                                    <th style={{ padding: '10px' }}>Total (R$)</th>
-                                    <th style={{ padding: '10px' }}>Taxa</th>
-                                    <th style={{ padding: '10px' }}>Ações</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {Object.entries(stats.establishments).map(([id, est], i) => (
-                                    <tr key={i} style={{ borderBottom: '1px solid var(--border)' }}>
-                                        <td style={{ padding: '10px' }}>{est.name}</td>
-                                        <td style={{ padding: '10px' }}>{est.count}</td>
-                                        <td style={{ padding: '10px' }}>{est.value.toFixed(2)}</td>
-                                        <td style={{ padding: '10px' }}>
-                                            <input
-                                                type="number"
-                                                defaultValue={est.deliveryFee}
-                                                style={{ width: '60px', padding: '5px', fontSize: '14px' }}
-                                                onBlur={(e) => est.tempFee = e.target.value}
-                                            />
-                                        </td>
-                                        <td style={{ padding: '10px' }}>
-                                            <button
-                                                onClick={() => updateDeliveryFee(id, est.tempFee || est.deliveryFee)}
-                                                style={{ width: 'auto', padding: '6px 10px', fontSize: '11px' }}
-                                            >
-                                                Ok
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-                {/* Tabela de Entregadores */}
-                <div className="card" style={{ padding: '15px' }}>
-                    <h3 className="mb-4" style={{ fontSize: '1.2rem' }}>🛵 Por Entregador</h3>
-                    <div style={{ overflowX: 'auto' }}>
-                        <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '350px' }}>
-                            <thead>
-                                <tr style={{ borderBottom: '2px solid var(--border)', textAlign: 'left' }}>
-                                    <th style={{ padding: '10px' }}>Nome</th>
-                                    <th style={{ padding: '10px' }}>Quantidade</th>
-                                    <th style={{ padding: '10px' }}>Total (R$)</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {Object.values(stats.couriers).map((courier, i) => (
-                                    <tr key={i} style={{ borderBottom: '1px solid var(--border)' }}>
-                                        <td style={{ padding: '10px' }}>{courier.name}</td>
-                                        <td style={{ padding: '10px' }}>{courier.count}</td>
-                                        <td style={{ padding: '10px' }}>{courier.value.toFixed(2)}</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
 
             {/* Detalhamento de Entregas */}
             <div className="card" style={{ padding: '15px', marginTop: '20px' }}>

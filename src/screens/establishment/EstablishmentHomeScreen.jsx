@@ -86,6 +86,16 @@ export default function EstablishmentHomeScreen() {
           }}>
             {profile?.name || 'Painel do Estabelecimento'}
           </h2>
+          {profile?.type && (
+            <p style={{
+              color: 'var(--primary)',
+              fontWeight: '600',
+              fontSize: '14px',
+              marginBottom: '8px'
+            }}>
+              📍 {profile.type}
+            </p>
+          )}
           {profile?.name && (
             <p style={{
               color: 'var(--primary)',

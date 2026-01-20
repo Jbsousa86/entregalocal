@@ -50,6 +50,7 @@ export default function CreateDeliveryScreen() {
 
     setLoading(true);
     try {
+      const pickupCode = Math.floor(1000 + Math.random() * 9000).toString();
       await addDoc(collection(db, 'deliveries'), {
         establishmentId: auth.currentUser.uid,
         establishmentName,
@@ -57,6 +58,7 @@ export default function CreateDeliveryScreen() {
         deliveryAddress,
         observation,
         value: parseFloat(value),
+        pickupCode,
         status: 'pending', // pending, accepted, in_progress, delivered, canceled
         createdAt: serverTimestamp(),
       });

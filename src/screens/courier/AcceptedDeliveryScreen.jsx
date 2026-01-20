@@ -6,6 +6,8 @@ import { useNavigate } from 'react-router-dom';
 export default function AcceptedDeliveryScreen() {
   const [activeDelivery, setActiveDelivery] = useState(null);
   const [establishmentName, setEstablishmentName] = useState('');
+  const [inputCode, setInputCode] = useState('');
+  const [error, setError] = useState('');
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -45,6 +47,16 @@ export default function AcceptedDeliveryScreen() {
 
   const updateStatus = async (newStatus) => {
     if (!activeDelivery) return;
+
+    // Validar código de coleta se estiver iniciando a entrega
+    if (newStatus === 'in_progress') {
+      if (inputCode !== activeDelivery.pickupCode) {
+        setError('Código de coleta incorreto. Peça o código ao lojista.');
+        return;
+      }
+      setError('');
+    }
+
     try {
       await updateDoc(doc(db, 'deliveries', activeDelivery.id), {
         status: newStatus
@@ -82,7 +94,18 @@ export default function AcceptedDeliveryScreen() {
           <button onClick={() => updateStatus('arrived_pickup')}>Cheguei no Estabelecimento</button>
         )}
         {activeDelivery.status === 'arrived_pickup' && (
-          <button onClick={() => updateStatus('in_progress')}>Coletar e Iniciar Entrega</button>
+          <div style={{ backgroundColor: 'var(--surface)', padding: '15px', borderRadius: '12px', border: '1px solid var(--border)' }}>
+            <label style={{ display: 'block', marginBottom: '10px', fontWeight: '600' }}>Digite o código de coleta:</label>
+            <input
+              type="text"
+              placeholder="Ex: 1234"
+              value={inputCode}
+              onChange={e => setInputCode(e.target.value)}
+              style={{ textAlign: 'center', fontSize: '20px', letterSpacing: '4px', marginBottom: '10px' }}
+            />
+            {error && <p style={{ color: 'var(--error)', fontSize: '13px', marginBottom: '10px' }}>{error}</p>}
+            <button onClick={() => updateStatus('in_progress')} style={{ backgroundColor: '#007bff' }}>Validar e Iniciar Entrega</button>
+          </div>
         )}
         {activeDelivery.status === 'in_progress' && (
           <button onClick={() => updateStatus('delivered')} style={{ backgroundColor: '#28a745', color: 'white' }}>Finalizar Entrega</button>

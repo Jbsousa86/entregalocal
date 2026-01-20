@@ -28,6 +28,13 @@ export default function LoginScreen({ onLogin, onRegister }) {
       console.log("3. Buscando perfil de estabelecimento...");
       const estDoc = await getDoc(doc(db, 'establishments', user.uid));
       if (estDoc.exists()) {
+        const estData = estDoc.data();
+        if (estData.isBlocked) {
+          await auth.signOut();
+          setError('Sua conta está suspensa. Entre em contato com o suporte.');
+          setLoading(false);
+          return;
+        }
         console.log("4. Perfil Estabelecimento encontrado.");
         onLogin('establishment');
         return;
@@ -37,6 +44,13 @@ export default function LoginScreen({ onLogin, onRegister }) {
       console.log("3. Buscando perfil de entregador...");
       const courierDoc = await getDoc(doc(db, 'couriers', user.uid));
       if (courierDoc.exists()) {
+        const courierData = courierDoc.data();
+        if (courierData.isBlocked) {
+          await auth.signOut();
+          setError('Sua conta está suspensa. Entre em contato com o suporte.');
+          setLoading(false);
+          return;
+        }
         console.log("4. Perfil Entregador encontrado.");
         onLogin('courier');
         return;
@@ -44,7 +58,7 @@ export default function LoginScreen({ onLogin, onRegister }) {
 
       // Se chegou aqui, o usuário existe no Auth mas não tem doc no Firestore
       setError('Login realizado, mas o perfil não foi encontrado. Tente criar uma nova conta com outro email.');
-      
+
     } catch (err) {
       console.error("Erro Login:", err);
       // Tratamento de erros comuns
@@ -66,14 +80,14 @@ export default function LoginScreen({ onLogin, onRegister }) {
     <div className="login-screen card fade-in">
       <h2 className="text-center mb-6">Bem-vindo</h2>
       <p className="text-center mb-6">Faça login para continuar</p>
-      
+
       {error && <div className="error-message">{error}</div>}
-      
+
       <div className="form-group">
         <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500', color: 'var(--text-muted)' }}>Email</label>
-        <input 
-          type="email" 
-          placeholder="seu@email.com" 
+        <input
+          type="email"
+          placeholder="seu@email.com"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
         />
@@ -81,9 +95,9 @@ export default function LoginScreen({ onLogin, onRegister }) {
 
       <div className="form-group">
         <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500', color: 'var(--text-muted)' }}>Senha</label>
-        <input 
-          type="password" 
-          placeholder="••••••••" 
+        <input
+          type="password"
+          placeholder="••••••••"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
         />

@@ -15,6 +15,7 @@ export default function EstablishmentProfileScreen() {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
+  const [type, setType] = useState('');
   const [hours, setHours] = useState('');
   const navigate = useNavigate();
 
@@ -34,6 +35,7 @@ export default function EstablishmentProfileScreen() {
             setName(data.name || '');
             setPhone(data.phone || '');
             setAddress(data.address || '');
+            setType(data.type || '');
             setHours(data.hours || '');
             setLoading(false);
             return;
@@ -100,9 +102,10 @@ export default function EstablishmentProfileScreen() {
         name,
         phone,
         address,
+        type,
         hours
       });
-      setProfile({ ...profile, name, phone, address, hours });
+      setProfile({ ...profile, name, phone, address, type, hours });
       setIsEditing(false);
       alert('Perfil atualizado com sucesso!');
     } catch (error) {
@@ -199,6 +202,10 @@ export default function EstablishmentProfileScreen() {
                 <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500' }}>Telefone:</label>
                 <input type="text" value={phone} onChange={e => setPhone(e.target.value)} />
               </div>
+              <div className="form-group mb-4">
+                <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500' }}>Área de Atuação:</label>
+                <input type="text" value={type} onChange={e => setType(e.target.value)} />
+              </div>
               <div className="form-group mb-6">
                 <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500' }}>Horário:</label>
                 <input type="text" value={hours} onChange={e => setHours(e.target.value)} />
@@ -210,8 +217,8 @@ export default function EstablishmentProfileScreen() {
             <>
               <p className="mb-4"><strong>🏪 Nome:</strong> {profile.name}</p>
               <p className="mb-4"><strong>📧 Email:</strong> {profile.email}</p>
-              <p className="mb-4"><strong>🍔 Tipo:</strong> {profile.type}</p>
-              <p className="mb-4"><strong>📍 Endereço:</strong> {profile.address}</p>
+              <p className="mb-4"><strong>📍 Área de Atuação:</strong> {profile.type}</p>
+              <p className="mb-4"><strong>🏠 Endereço:</strong> {profile.address}</p>
               <p className="mb-4"><strong>📞 Telefone:</strong> {profile.phone}</p>
               <p className="mb-4"><strong>⏰ Horário:</strong> {profile.hours}</p>
               <button onClick={() => setIsEditing(true)}>Editar Dados</button>
@@ -227,8 +234,6 @@ export default function EstablishmentProfileScreen() {
       {!isEditing && (
         <div className="fade-in">
           <button onClick={() => navigate('/establishment/home')} className="mb-4">Voltar ao Início</button>
-          <button onClick={() => navigate('/establishment/in-progress')} className="mb-4">Entregas em Andamento</button>
-          <button onClick={() => navigate('/establishment/history')} className="mb-4">Ver Histórico</button>
           <button onClick={handleLogout} style={{ backgroundColor: 'var(--error)' }}>Sair da Conta</button>
         </div>
       )}

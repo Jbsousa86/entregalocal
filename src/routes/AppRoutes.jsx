@@ -22,6 +22,8 @@ import CourierProfileScreen from '../screens/courier/CourierProfileScreen';
 // Admin
 import AdminLoginScreen from '../screens/admin/AdminLoginScreen';
 import AdminDashboardScreen from '../screens/admin/AdminDashboardScreen';
+import AdminEstablishmentReport from '../screens/admin/AdminEstablishmentReport';
+import AdminCourierReport from '../screens/admin/AdminCourierReport';
 
 function SplashScreenWrapper() {
 	const navigate = useNavigate();
@@ -113,6 +115,8 @@ export default function AppRoutes() {
 				{/* Fluxo Admin */}
 				<Route path="/admin/login" element={<AdminLoginScreen />} />
 				<Route path="/admin/dashboard" element={<AdminDashboardScreen />} />
+				<Route path="/admin/reports/establishments" element={<AdminEstablishmentReport />} />
+				<Route path="/admin/reports/couriers" element={<AdminCourierReport />} />
 			</Routes>
 		</Router>
 	);

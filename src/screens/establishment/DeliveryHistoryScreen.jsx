@@ -125,10 +125,10 @@ export default function DeliveryHistoryScreen() {
       {/* Seção de Filtros */}
       <div style={{ display: 'flex', gap: '6px', marginBottom: '20px', overflowX: 'auto', paddingBottom: '4px' }}>
         {[
-          { id: 'all', label: 'Tudo' },
           { id: 'today', label: 'Hoje' },
           { id: 'week', label: '7 dias' },
-          { id: 'month', label: '30 dias' }
+          { id: 'month', label: '30 dias' },
+          { id: 'all', label: 'Tudo' }
         ].map(range => (
           <button
             key={range.id}

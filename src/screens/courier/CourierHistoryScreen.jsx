@@ -8,7 +8,7 @@ export default function CourierHistoryScreen() {
   const [history, setHistory] = useState([]);
   const [filteredHistory, setFilteredHistory] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filterRange, setFilterRange] = useState('all');
+  const [filterRange, setFilterRange] = useState('today');
   const [stats, setStats] = useState({ totalCount: 0, totalEarnings: 0 });
   const [statsLoading, setStatsLoading] = useState(false);
   const navigate = useNavigate();

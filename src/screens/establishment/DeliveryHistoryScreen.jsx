@@ -7,7 +7,7 @@ import { useNavigate } from 'react-router-dom';
 export default function DeliveryHistoryScreen() {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filterRange, setFilterRange] = useState('all'); // Padrão 'all' para o usuário ver tudo primeiro
+  const [filterRange, setFilterRange] = useState('today'); // Padrão 'today' conforme solicitação
   const [stats, setStats] = useState({
     deliveredCount: 0,
     canceledCount: 0,

@@ -8,7 +8,7 @@ export default function AdminCourierReport() {
         couriers: {}
     });
     const [allDeliveries, setAllDeliveries] = useState([]);
-    const [filter, setFilter] = useState('all');
+    const [filter, setFilter] = useState('today');
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
 

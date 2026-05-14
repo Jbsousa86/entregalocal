@@ -83,7 +83,7 @@ export default function DeliveryDetailsScreen() {
 
           setNearbyCount(Math.min(groupable.length, 2));
         } else {
-          alert('Entrega não encontrada ou já removida.');
+          alert('Entrega nï¿½o encontrada ou jï¿½ removida.');
           navigate('/courier/home');
         }
       } catch (error) {
@@ -122,18 +122,18 @@ export default function DeliveryDetailsScreen() {
         ...groupCandidates.slice(0, 2)
       ];
 
+      const activeQuery = query(
+        collection(db, 'deliveries'),
+        where('courierId', '==', auth.currentUser.uid),
+        where('status', 'in', ['accepted', 'arrived_pickup', 'in_progress'])
+      );
+      const activeSnapshot = await getDocs(activeQuery);
+
+      if (!activeSnapshot.empty) {
+        throw new Error('VocÃª jÃ¡ possui uma entrega em andamento. Conclua-a antes de aceitar uma nova.');
+      }
+
       await runTransaction(db, async (transaction) => {
-        const activeQuery = query(
-          collection(db, 'deliveries'),
-          where('courierId', '==', auth.currentUser.uid),
-          where('status', 'in', ['accepted', 'arrived_pickup', 'in_progress'])
-        );
-        const activeSnapshot = await transaction.get(activeQuery);
-
-        if (!activeSnapshot.empty) {
-          throw new Error('Você já possui uma entrega em andamento. Conclua-a antes de aceitar uma nova.');
-        }
-
         const courierRef = doc(db, 'couriers', auth.currentUser.uid);
         const courierDoc = await transaction.get(courierRef);
         const courierName = (courierDoc.exists() && courierDoc.data().name) ? courierDoc.data().name : 'Entregador';
@@ -147,11 +147,11 @@ export default function DeliveryDetailsScreen() {
           const deliveryDoc = await transaction.get(deliveryRef);
 
           if (!deliveryDoc.exists()) {
-            throw new Error('Uma das entregas do grupo não foi encontrada.');
+            throw new Error('Uma das entregas do grupo nÃ£o foi encontrada.');
           }
 
           if (deliveryDoc.data().status !== 'pending') {
-            throw new Error('Uma das entregas do grupo já foi aceita por outro entregador.');
+            throw new Error('Uma das entregas do grupo jÃ¡ foi aceita por outro entregador.');
           }
 
           transaction.update(deliveryRef, {
@@ -171,10 +171,10 @@ export default function DeliveryDetailsScreen() {
       console.error('Erro ao aceitar entrega:', error);
       alert(error.message);
       if (
-        error.message === 'Esta entrega já foi aceita por outro entregador.' ||
-        error.message === 'Entrega não encontrada.' ||
-        error.message === 'Uma das entregas do grupo não foi encontrada.' ||
-        error.message === 'Uma das entregas do grupo já foi aceita por outro entregador.'
+        error.message === 'Esta entrega jï¿½ foi aceita por outro entregador.' ||
+        error.message === 'Entrega nï¿½o encontrada.' ||
+        error.message === 'Uma das entregas do grupo nï¿½o foi encontrada.' ||
+        error.message === 'Uma das entregas do grupo jï¿½ foi aceita por outro entregador.'
       ) {
         navigate('/courier/home');
       } else {
@@ -272,7 +272,7 @@ export default function DeliveryDetailsScreen() {
 
         {delivery.observation && (
           <div style={{ marginTop: '24px', padding: '16px', background: '#f8fafc', borderRadius: '12px', border: '1px solid var(--border)' }}>
-            <div style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-muted)', marginBottom: '4px' }}>Observações</div>
+            <div style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-muted)', marginBottom: '4px' }}>Observaï¿½ï¿½es</div>
             <div style={{ fontSize: '0.9rem', color: 'var(--secondary)' }}>{delivery.observation}</div>
           </div>
         )}
@@ -284,7 +284,7 @@ export default function DeliveryDetailsScreen() {
             Este pedido pode ser agrupado com mais {nearbyCount} pedido{nearbyCount > 1 ? 's' : ''} do mesmo estabelecimento.
           </p>
           <p style={{ marginTop: '8px', color: 'var(--text-muted)' }}>
-            O sistema aceitará até 3 pedidos juntos para facilitar a viagem do entregador.
+            O sistema aceitarï¿½ atï¿½ 3 pedidos juntos para facilitar a viagem do entregador.
           </p>
         </div>
       )}

@@ -216,181 +216,224 @@ export default function CourierHomeScreen() {
   }, []);
 
   return (
-    <div
-      className="courier-home-screen card fade-in"
-      style={{
-        position: 'relative',
-        overflow: 'hidden',
-        padding: '0'
-      }}
-    >
-      {/* Background Hero - Full primary area */}
+    <div className="courier-home-screen fade-in" style={{ paddingBottom: '40px' }}>
+      {/* Background Hero */}
       <div style={{
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
         height: '220px',
         backgroundImage: `url(${backgroundImage})`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
-        zIndex: 0
+        position: 'relative',
+        borderRadius: '0 0 40px 40px',
+        boxShadow: 'var(--shadow-lg)'
       }}>
         <div style={{
           position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'linear-gradient(to bottom, rgba(5, 150, 105, 0.4), var(--surface) 90%)'
+          inset: 0,
+          background: 'linear-gradient(to bottom, rgba(0,0,0,0.2), var(--secondary-hover) 95%)',
+          borderRadius: '0 0 40px 40px'
         }} />
-      </div>
-
-      <div style={{ position: 'relative', zIndex: 1, padding: '40px 24px 24px' }}>
-        {/* Profile Section */}
-        <div className="text-center mb-6">
+        
+        <div style={{ 
+          position: 'absolute', 
+          bottom: '24px', 
+          left: '24px', 
+          right: '24px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'flex-end'
+        }}>
+          <div>
+            <h2 style={{ color: 'white', fontSize: '1.5rem', fontWeight: '800', marginBottom: '4px' }}>
+              Olá, {courierName.split(' ')[0] || 'Entregador'}!
+            </h2>
+            <div className="badge badge-primary" style={{ background: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(8px)', color: 'white', border: 'none' }}>
+              ID: #{auth.currentUser?.uid.slice(-4).toUpperCase()}
+            </div>
+          </div>
           <div style={{
-            width: '110px',
-            height: '110px',
-            borderRadius: '50%',
-            backgroundColor: 'var(--background)',
-            margin: '0 auto 16px',
-            border: '4px solid var(--surface)',
+            width: '64px',
+            height: '64px',
+            borderRadius: '20px',
+            backgroundColor: 'var(--surface)',
+            border: '4px solid rgba(255,255,255,0.2)',
             boxShadow: 'var(--shadow-lg)',
-            overflow: 'hidden',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            position: 'relative'
+            overflow: 'hidden'
           }}>
             {photoURL ? (
               <img src={photoURL} alt="Perfil" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
             ) : (
-              <span style={{ fontSize: '32px' }}>👤</span>
+              <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px' }}>👤</div>
             )}
           </div>
-          <h2 style={{
-            color: 'var(--secondary)',
-            textShadow: '0 1px 2px rgba(0,0,0,0.1)',
-            marginBottom: '4px',
-            fontWeight: '800'
-          }}>
-            {courierName || 'Portal do Entregador'}
-          </h2>
-          {courierArea && (
-            <p style={{
-              color: 'var(--primary)',
-              fontWeight: '600',
-              fontSize: '14px',
-              marginBottom: '8px'
-            }}>
-              📍 {courierArea}
-            </p>
-          )}
-          {courierName && (
-            <p style={{
-              color: 'var(--primary)',
-              fontWeight: '600',
-              fontSize: '15px',
-              textTransform: 'uppercase',
-              letterSpacing: '1px'
-            }}>
-              ENTREGADOR PARCEIRO
-            </p>
-          )}
         </div>
+      </div>
 
-        <div className="mb-6" style={{ display: 'flex', gap: '12px' }}>
-          <button onClick={() => navigate('/courier/history')} style={{ flex: 1 }}>📜 Histórico e Relatórios</button>
-          <button onClick={() => navigate('/courier/profile')} style={{ backgroundColor: 'var(--text-muted)', flex: 1 }}>👤 Meu Perfil</button>
-        </div>
-
-        <div className="mb-8" style={{ padding: '24px', backgroundColor: 'var(--background)', borderRadius: 'var(--radius)', border: '1px solid var(--border)', textAlign: 'center', boxShadow: 'var(--shadow-sm)' }}>
-          <div className="mb-4" style={{ fontWeight: '700', fontSize: '20px' }}>
-            Status: <span style={{ color: isOnline ? 'var(--primary)' : 'var(--error)' }}>
-              {isOnline ? '🟢 Online' : '🔴 Offline'}
-            </span>
-          </div>
-          <button
-            onClick={toggleStatus}
-            style={{
-              backgroundColor: isOnline ? 'var(--error)' : 'var(--primary)',
-              padding: '16px',
-              fontSize: '18px'
+      <div style={{ padding: '24px' }}>
+        {/* Quick Actions */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '24px' }}>
+          <button 
+            onClick={() => navigate('/courier/history')} 
+            className="card"
+            style={{ 
+              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', padding: '16px',
+              border: 'none', cursor: 'pointer', background: 'var(--surface)'
             }}
           >
-            {isOnline ? '⏸️ Ficar Offline' : '🚀 Ficar Online'}
+            <div style={{ color: 'var(--primary)' }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v10l4.5 4.5"/><circle cx="12" cy="12" r="10"/></svg>
+            </div>
+            <span style={{ fontSize: '0.8rem', fontWeight: '700', color: 'var(--secondary)' }}>Histórico</span>
+          </button>
+          
+          <button 
+            onClick={() => navigate('/courier/profile')} 
+            className="card"
+            style={{ 
+              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', padding: '16px',
+              border: 'none', cursor: 'pointer', background: 'var(--surface)'
+            }}
+          >
+            <div style={{ color: 'var(--primary)' }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            </div>
+            <span style={{ fontSize: '0.8rem', fontWeight: '700', color: 'var(--secondary)' }}>Meu Perfil</span>
           </button>
         </div>
 
+        {/* Status Card */}
+        <div className="card" style={{ 
+          padding: '24px', 
+          marginBottom: '32px', 
+          background: isOnline ? 'var(--primary-light)' : 'var(--surface)',
+          border: `2px solid ${isOnline ? 'var(--primary)' : 'var(--border)'}`,
+          textAlign: 'center'
+        }}>
+          <div style={{ 
+            fontSize: '0.75rem', 
+            fontWeight: '800', 
+            textTransform: 'uppercase', 
+            letterSpacing: '1px',
+            color: isOnline ? 'var(--primary)' : 'var(--text-muted)',
+            marginBottom: '16px'
+          }}>
+            Status Atual: {isOnline ? 'Disponível' : 'Indisponível'}
+          </div>
+          
+          <button
+            onClick={toggleStatus}
+            className="btn"
+            style={{
+              backgroundColor: isOnline ? 'var(--error)' : 'var(--primary)',
+              boxShadow: isOnline ? '0 10px 20px rgba(239, 68, 68, 0.3)' : '0 10px 20px rgba(16, 185, 129, 0.3)',
+              width: '100%',
+              height: '60px',
+              fontSize: '1rem'
+            }}
+          >
+            {isOnline ? 'Ficar Offline' : 'Começar a Trabalhar'}
+          </button>
+        </div>
 
+        {/* Delivery List Section */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-          <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-            📦 Entregas disponíveis
-          </h3>
+          <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: '800' }}>Disponíveis agora</h3>
           <button
             onClick={manualRefresh}
             style={{
-              width: 'auto',
-              padding: '6px 12px',
-              fontSize: '12px',
-              backgroundColor: 'var(--background)',
-              color: 'var(--text-main)',
-              border: '1px solid var(--border)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px'
+              background: 'none', border: 'none', color: 'var(--primary)', fontSize: '0.85rem', fontWeight: '700', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', gap: '4px'
             }}
           >
-            🔄 Atualizar
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
+            Atualizar
           </button>
         </div>
 
         {!isOnline && (
-          <div className="text-center" style={{ padding: '20px', backgroundColor: 'var(--primary-light)', borderRadius: 'var(--radius)', color: 'var(--secondary)' }}>
-            <p>Fique online para começar a receber entregas!</p>
+          <div className="glass" style={{ padding: '30px', borderRadius: '24px', textAlign: 'center', border: '2px dashed var(--border)' }}>
+            <p style={{ color: 'var(--text-muted)', fontWeight: '600' }}>Fique online para ver as entregas disponíveis na sua região.</p>
           </div>
         )}
 
         {isOnline && deliveries.length === 0 && (
-          <div className="text-center" style={{ padding: '40px' }}>
-            <div className="loader" style={{ marginBottom: '15px', fontSize: '24px' }}>📡</div>
-            <p>Procurando novas entregas na sua área...</p>
+          <div style={{ padding: '40px', textAlign: 'center' }}>
+            <div className="loader-container" style={{ position: 'relative', width: '60px', height: '60px', margin: '0 auto 20px' }}>
+              <div style={{ position: 'absolute', inset: 0, border: '4px solid var(--primary-light)', borderRadius: '50%' }}></div>
+              <div style={{ position: 'absolute', inset: 0, border: '4px solid var(--primary)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+            </div>
+            <p style={{ color: 'var(--text-muted)', fontWeight: '600' }}>Buscando novas entregas...</p>
           </div>
         )}
 
         {hasActiveDelivery && (
-          <div className="text-center mb-6" style={{ padding: '20px', backgroundColor: '#fff3cd', borderRadius: 'var(--radius)', border: '1px solid #ffeeba', color: '#856404' }}>
-            <p style={{ fontWeight: 'bold', marginBottom: '12px' }}>⚠️ Você já possui uma entrega em andamento!</p>
+          <div className="card fade-in" style={{ padding: '20px', backgroundColor: '#fffbeb', border: '2px solid #fbbf24', marginBottom: '24px' }}>
+            <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '16px' }}>
+              <div style={{ color: '#d97706' }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              </div>
+              <p style={{ color: '#92400e', fontWeight: '700', fontSize: '0.9rem' }}>Você possui uma entrega ativa.</p>
+            </div>
             <button
               onClick={() => navigate('/courier/accepted')}
-              style={{ backgroundColor: '#856404', color: 'white', border: 'none' }}
+              className="btn"
+              style={{ backgroundColor: '#d97706', width: '100%', height: '50px' }}
             >
-              Ir para entrega ativa
+              Ver Entrega Ativa
             </button>
           </div>
         )}
 
-        <div className="deliveries-list" style={{ opacity: hasActiveDelivery ? 0.6 : 1, pointerEvents: hasActiveDelivery ? 'none' : 'auto' }}>
+        <div className="deliveries-list" style={{ opacity: hasActiveDelivery ? 0.5 : 1, pointerEvents: hasActiveDelivery ? 'none' : 'auto' }}>
           {deliveries.map(item => (
-            <div key={item.id} className="mb-4" style={{ padding: '20px', borderRadius: 'var(--radius)', backgroundColor: 'var(--surface)', border: '1px solid var(--border)', boxShadow: 'var(--shadow)' }}>
-              <h4 style={{ marginBottom: '12px', color: 'var(--secondary)', fontSize: '18px' }}>
-                🏪 {item.establishmentName || 'Estabelecimento'}
-              </h4>
-              <div style={{ fontSize: '15px', marginBottom: '20px' }}>
-                <p style={{ margin: '8px 0', display: 'flex', gap: '8px' }}><strong>📍</strong> {item.pickupAddress}</p>
-                <p style={{ margin: '8px 0', display: 'flex', gap: '8px' }}><strong>🏁</strong> {item.deliveryAddress}</p>
-                <p style={{ margin: '12px 0 0', fontSize: '20px', color: 'var(--primary)', fontWeight: '800' }}>
-                  💰 R$ {item.value}
-                </p>
+            <div key={item.id} className="card fade-in" style={{ padding: '24px', marginBottom: '16px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div style={{ width: '40px', height: '40px', background: 'var(--primary-light)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)' }}>
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9h18v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9Z"/><path d="m3 9 2.45-4.9A2 2 0 0 1 7.24 3h9.52a2 2 0 0 1 1.8 1.1L21 9"/></svg>
+                  </div>
+                  <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '800' }}>{item.establishmentName || 'Estabelecimento'}</h4>
+                </div>
+                <div style={{ fontSize: '1.25rem', fontWeight: '800', color: 'var(--primary)' }}>
+                  R$ {item.value}
+                </div>
               </div>
-              <button onClick={() => navigate('/courier/delivery-details', { state: { deliveryId: item.id } })}>
-                Ver Detalhes / Aceitar
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '24px' }}>
+                <div style={{ display: 'flex', gap: '12px' }}>
+                  <div style={{ color: 'var(--primary)', paddingTop: '2px' }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>
+                  </div>
+                  <div style={{ fontSize: '0.85rem' }}>
+                    <div style={{ color: 'var(--text-muted)', fontWeight: '700', fontSize: '0.7rem', textTransform: 'uppercase' }}>Retirada</div>
+                    <div style={{ fontWeight: '600' }}>{item.pickupAddress}</div>
+                  </div>
+                </div>
+                
+                <div style={{ display: 'flex', gap: '12px' }}>
+                  <div style={{ color: 'var(--accent)', paddingTop: '2px' }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+                  </div>
+                  <div style={{ fontSize: '0.85rem' }}>
+                    <div style={{ color: 'var(--text-muted)', fontWeight: '700', fontSize: '0.7rem', textTransform: 'uppercase' }}>Entrega</div>
+                    <div style={{ fontWeight: '600' }}>{item.deliveryAddress}</div>
+                  </div>
+                </div>
+              </div>
+
+              <button 
+                onClick={() => navigate('/courier/delivery-details', { state: { deliveryId: item.id } })}
+                className="btn btn-outline"
+                style={{ width: '100%', height: '50px' }}
+              >
+                Ver Detalhes
               </button>
             </div>
           ))}
         </div>
       </div>
+      
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 }

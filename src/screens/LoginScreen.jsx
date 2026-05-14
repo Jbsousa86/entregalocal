@@ -19,13 +19,9 @@ export default function LoginScreen({ onLogin, onRegister }) {
 
     setLoading(true);
     try {
-      console.log("1. Iniciando autenticação...");
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
-      console.log("2. Autenticação OK. UID:", user.uid);
 
-      // Verificar se é estabelecimento
-      console.log("3. Buscando perfil de estabelecimento...");
       const estDoc = await getDoc(doc(db, 'establishments', user.uid));
       if (estDoc.exists()) {
         const estData = estDoc.data();
@@ -35,13 +31,10 @@ export default function LoginScreen({ onLogin, onRegister }) {
           setLoading(false);
           return;
         }
-        console.log("4. Perfil Estabelecimento encontrado.");
         onLogin('establishment');
         return;
       }
 
-      // Verificar se é entregador
-      console.log("3. Buscando perfil de entregador...");
       const courierDoc = await getDoc(doc(db, 'couriers', user.uid));
       if (courierDoc.exists()) {
         const courierData = courierDoc.data();
@@ -51,24 +44,17 @@ export default function LoginScreen({ onLogin, onRegister }) {
           setLoading(false);
           return;
         }
-        console.log("4. Perfil Entregador encontrado.");
         onLogin('courier');
         return;
       }
 
-      // Se chegou aqui, o usuário existe no Auth mas não tem doc no Firestore
-      setError('Login realizado, mas o perfil não foi encontrado. Tente criar uma nova conta com outro email.');
+      setError('Login realizado, mas o perfil não foi encontrado.');
 
     } catch (err) {
       console.error("Erro Login:", err);
-      // Tratamento de erros comuns
-      let errorMessage = 'Erro ao fazer login.';
-      if (err.code === 'auth/invalid-credential' || err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {
-        errorMessage = 'Email ou senha incorretos.';
-      } else if (err.code === 'auth/invalid-email') {
+      let errorMessage = 'Email ou senha incorretos.';
+      if (err.code === 'auth/invalid-email') {
         errorMessage = 'Email inválido.';
-      } else {
-        errorMessage += ' ' + err.message;
       }
       setError(errorMessage);
     } finally {
@@ -77,42 +63,94 @@ export default function LoginScreen({ onLogin, onRegister }) {
   };
 
   return (
-    <div className="login-screen card fade-in">
-      <h2 className="text-center mb-6">Bem-vindo</h2>
-      <p className="text-center mb-6">Faça login para continuar</p>
+    <div className="login-screen fade-in" style={{ padding: '40px 20px', minHeight: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+      <div className="card" style={{ padding: '40px 30px' }}>
+        <div className="card-header">
+          <div style={{ 
+            width: '80px', 
+            height: '80px', 
+            backgroundColor: 'var(--primary-light)', 
+            borderRadius: '24px', 
+            margin: '0 auto 24px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: 'var(--primary)'
+          }}>
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg>
+          </div>
+          <h2 style={{ fontSize: '1.75rem', fontWeight: '800', marginBottom: '8px' }}>Bem-vindo de volta</h2>
+          <p style={{ color: 'var(--text-muted)' }}>Faça login para gerenciar suas entregas</p>
+        </div>
 
-      {error && <div className="error-message">{error}</div>}
+        {error && <div className="error-message">{error}</div>}
 
-      <div className="form-group">
-        <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500', color: 'var(--text-muted)' }}>Email</label>
-        <input
-          type="email"
-          placeholder="seu@email.com"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
+        <div className="form-group">
+          <label>Email</label>
+          <div style={{ position: 'relative' }}>
+            <input
+              type="email"
+              placeholder="seu@email.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              style={{ paddingLeft: '48px' }}
+            />
+            <div style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <div className="form-group">
+          <label>Senha</label>
+          <div style={{ position: 'relative' }}>
+            <input
+              type="password"
+              placeholder="••••••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              style={{ paddingLeft: '48px' }}
+            />
+            <div style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <button 
+          onClick={handleLogin} 
+          disabled={loading} 
+          className="btn"
+          style={{ marginTop: '12px', height: '60px' }}
+        >
+          {loading ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{ width: '18px', height: '18px', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 0.6s linear infinite' }}></div>
+              Entrando...
+            </div>
+          ) : 'Entrar na Conta'}
+        </button>
+
+        <p className="text-center" style={{ marginTop: '30px', fontSize: '0.9rem', color: 'var(--text-muted)' }}>
+          Ainda não tem acesso?{' '}
+          <button 
+            className="link" 
+            onClick={onRegister}
+            style={{ background: 'none', border: 'none', padding: 0, font: 'inherit', color: 'var(--primary)', fontWeight: '700', cursor: 'pointer' }}
+          >
+            Cadastre-se agora
+          </button>
+        </p>
       </div>
-
-      <div className="form-group">
-        <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500', color: 'var(--text-muted)' }}>Senha</label>
-        <input
-          type="password"
-          placeholder="••••••••"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
-      </div>
-
-      <button onClick={handleLogin} disabled={loading} className="mb-4">
-        {loading ? 'Entrando...' : 'Entrar'}
-      </button>
-
-      <p className="text-center" style={{ fontSize: '14px' }}>
-        Não tem uma conta?{' '}
-        <span className="link" onClick={onRegister}>
-          Criar conta agora
-        </span>
-      </p>
+      
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 }
+

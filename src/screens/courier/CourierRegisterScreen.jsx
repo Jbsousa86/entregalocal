@@ -87,49 +87,114 @@ export default function CourierRegisterScreen({ onRegister, onBack }) {
   };
 
   return (
-    <div className="courier-register-screen card fade-in">
-      <h2 className="text-center mb-6">Cadastro</h2>
-      {error && <div className="error-message">{error}</div>}
+    <div className="courier-register-screen fade-in" style={{ padding: '20px 0' }}>
+      <div className="card" style={{ padding: '32px 24px' }}>
+        <header style={{ textAlign: 'center', marginBottom: '32px' }}>
+          <h2 style={{ fontSize: '1.75rem', fontWeight: '800', color: 'var(--secondary)' }}>Dados de Cadastro</h2>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Torne-se um entregador parceiro agora mesmo.</p>
+        </header>
 
-      <div className="text-center mb-6">
-        <div style={{
-          width: '100px',
-          height: '100px',
-          borderRadius: '50%',
-          backgroundColor: 'var(--background)',
-          margin: '0 auto 12px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          overflow: 'hidden',
-          border: '2px solid var(--border)',
-          position: 'relative',
-          cursor: 'pointer'
-        }} onClick={() => document.getElementById('fileInput').click()}>
-          {imagePreview ? (
-            <img src={imagePreview} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-          ) : (
-            <span style={{ fontSize: '32px' }}>👤</span>
-          )}
+        {error && (
+          <div style={{ 
+            backgroundColor: '#fef2f2', 
+            color: 'var(--error)', 
+            padding: '12px 16px', 
+            borderRadius: '12px', 
+            fontSize: '0.85rem', 
+            fontWeight: '600', 
+            marginBottom: '24px',
+            border: '1px solid #fee2e2'
+          }}>
+            ⚠️ {error}
+          </div>
+        )}
+
+        <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+          <div style={{
+            width: '100px',
+            height: '100px',
+            borderRadius: '30px',
+            backgroundColor: 'var(--background)',
+            margin: '0 auto 12px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            overflow: 'hidden',
+            border: '2px dashed var(--primary)',
+            position: 'relative',
+            cursor: 'pointer',
+            transition: 'all 0.3s ease'
+          }} onClick={() => document.getElementById('fileInput').click()}>
+            {imagePreview ? (
+              <img src={imagePreview} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            ) : (
+              <div style={{ textAlign: 'center' }}>
+                <span style={{ fontSize: '32px', display: 'block' }}>📸</span>
+                <span style={{ fontSize: '10px', fontWeight: '800', color: 'var(--primary)', textTransform: 'uppercase' }}>Foto</span>
+              </div>
+            )}
+          </div>
+          <input
+            id="fileInput"
+            type="file"
+            accept="image/*"
+            onChange={handleImageChange}
+            style={{ display: 'none' }}
+          />
         </div>
-        <p style={{ fontSize: '14px', color: 'var(--text-muted)' }}>Foto de Perfil</p>
-        <input
-          id="fileInput"
-          type="file"
-          accept="image/*"
-          onChange={handleImageChange}
-          style={{ display: 'none' }}
-        />
-      </div>
 
-      <input type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} />
-      <input type="password" placeholder="Senha" value={password} onChange={e => setPassword(e.target.value)} />
-      <input type="text" placeholder="Nome completo" value={name} onChange={e => setName(e.target.value)} />
-      <input type="text" placeholder="Telefone" value={phone} onChange={e => setPhone(e.target.value)} />
-      <input type="text" placeholder="Tipo de veículo" value={vehicle} onChange={e => setVehicle(e.target.value)} />
-      <input type="text" placeholder="Área de atuação" value={area} onChange={e => setArea(e.target.value)} />
-      <button onClick={handleRegister} disabled={loading} className="mb-4">{loading ? 'Cadastrando...' : 'Finalizar Cadastro'}</button>
-      <button onClick={onBack} disabled={loading} style={{ backgroundColor: 'var(--text-muted)' }}>Voltar</button>
+        <div className="form-group">
+          <label>Email Profissional</label>
+          <input type="email" placeholder="exemplo@email.com" value={email} onChange={e => setEmail(e.target.value)} />
+        </div>
+
+        <div className="form-group">
+          <label>Senha de Acesso</label>
+          <input type="password" placeholder="Mínimo 6 caracteres" value={password} onChange={e => setPassword(e.target.value)} />
+        </div>
+
+        <div className="form-group">
+          <label>Nome Completo</label>
+          <input type="text" placeholder="Como quer ser chamado?" value={name} onChange={e => setName(e.target.value)} />
+        </div>
+
+        <div className="form-group">
+          <label>Telefone / WhatsApp</label>
+          <input type="text" placeholder="(00) 00000-0000" value={phone} onChange={e => setPhone(e.target.value)} />
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+          <div className="form-group">
+            <label>Veículo</label>
+            <input type="text" placeholder="Ex: Moto, Bike" value={vehicle} onChange={e => setVehicle(e.target.value)} />
+          </div>
+          <div className="form-group">
+            <label>Cidade/Área</label>
+            <input type="text" placeholder="Ex: Centro" value={area} onChange={e => setArea(e.target.value)} />
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '24px' }}>
+          <button 
+            onClick={handleRegister} 
+            disabled={loading} 
+            className="btn"
+            style={{ height: '55px', fontSize: '1rem' }}
+          >
+            {loading ? 'Processando Cadastro...' : 'Finalizar Cadastro'}
+          </button>
+          
+          <button 
+            onClick={onBack} 
+            disabled={loading} 
+            className="btn btn-secondary"
+            style={{ height: '50px' }}
+          >
+            Voltar para Login
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
+

@@ -33,10 +33,17 @@ export default function CourierHistoryScreen() {
             const data = doc.data();
             // Apenas finalizadas
             if (['delivered', 'canceled'].includes(data.status)) {
+              const dateSource = (data.status === 'delivered' && data.completedAt) ? data.completedAt : data.createdAt;
+              let jsDate = new Date(0);
+              if (dateSource) {
+                jsDate = dateSource.seconds ? new Date(dateSource.seconds * 1000) : new Date(dateSource);
+              }
+
               const item = {
                 id: doc.id,
                 ...data,
-                formattedDate: data.createdAt ? new Date(data.createdAt.seconds * 1000).toLocaleDateString() : '---'
+                jsDate,
+                formattedDate: jsDate.getTime() > 0 ? jsDate.toLocaleDateString() : '---'
               };
               list.push(item);
 
@@ -47,8 +54,8 @@ export default function CourierHistoryScreen() {
             }
           });
 
-          // Ordenar por data
-          list.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+          // Ordenar por maior data (mais recente primeiro)
+          list.sort((a, b) => (b.jsDate?.getTime() || 0) - (a.jsDate?.getTime() || 0));
 
           // Se houver entregas antigas sem nome, busca os nomes agora
           if (estIdsToFetch.size > 0) {
@@ -122,7 +129,8 @@ export default function CourierHistoryScreen() {
       }
 
       filtered = filtered.filter(item => {
-        const date = item.createdAt ? new Date(item.createdAt.seconds * 1000) : new Date(0);
+        const dateSource = (item.status === 'delivered' && item.completedAt) ? item.completedAt : item.createdAt;
+        const date = dateSource ? (dateSource.seconds ? new Date(dateSource.seconds * 1000) : new Date(dateSource)) : new Date(0);
         return date.getTime() >= startTime;
       });
     }
@@ -136,79 +144,163 @@ export default function CourierHistoryScreen() {
     setStatsLoading(false);
   };
 
+  if (loading) return (
+    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', color: 'var(--primary)' }}>
+      <div style={{ width: '40px', height: '40px', border: '4px solid var(--primary-light)', borderTopColor: 'var(--primary)', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+    </div>
+  );
+
   return (
-    <div className="courier-history-screen">
-      <h2>Histórico e Relatório</h2>
-      <button onClick={() => navigate('/courier/home')} style={{ marginBottom: '20px', width: 'auto', padding: '10px 20px' }}>Voltar ao Início</button>
+    <div className="courier-history-screen fade-in" style={{ paddingBottom: '40px' }}>
+      <header style={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'space-between', 
+        marginBottom: '24px',
+        padding: '0 4px'
+      }}>
+        <button 
+          onClick={() => navigate('/courier/home')}
+          style={{ 
+            background: 'var(--surface)', 
+            border: 'none', 
+            borderRadius: '12px', 
+            width: '40px', 
+            height: '40px', 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center',
+            boxShadow: 'var(--shadow-sm)',
+            cursor: 'pointer',
+            color: 'var(--secondary)'
+          }}
+        >
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="m15 18-6-6 6-6"/>
+          </svg>
+        </button>
+        <h2 style={{ fontSize: '1.25rem', fontWeight: '800', flex: 1, textAlign: 'center', margin: '0 12px' }}>
+          Histórico e Ganhos
+        </h2>
+        <div style={{ width: '40px' }}></div>
+      </header>
 
-      {/* Seção de Relatório */}
-      <div className="mb-8 card" style={{ padding: '20px', backgroundColor: 'var(--background)', borderRadius: 'var(--radius)', border: '1px solid var(--border)', marginBottom: '25px', boxShadow: 'var(--shadow-sm)' }}>
-        <h3 className="mb-4" style={{ textAlign: 'center', fontSize: '18px' }}>📊 Resumo de Atividades</h3>
+      {/* Filter Tabs */}
+      <div style={{ 
+        display: 'flex', 
+        gap: '8px', 
+        marginBottom: '24px', 
+        paddingLeft: '4px',
+        overflowX: 'auto',
+        scrollbarWidth: 'none'
+      }}>
+        {[
+          { id: 'today', label: 'Hoje' },
+          { id: 'week', label: '7 dias' },
+          { id: 'month', label: '30 dias' },
+          { id: 'all', label: 'Tudo' }
+        ].map(range => (
+          <button
+            key={range.id}
+            onClick={() => setFilterRange(range.id)}
+            className={`badge ${filterRange === range.id ? 'badge-primary' : ''}`}
+            style={{
+              padding: '10px 18px',
+              fontSize: '0.85rem',
+              fontWeight: '700',
+              cursor: 'pointer',
+              border: 'none',
+              background: filterRange === range.id ? 'var(--primary)' : 'var(--surface)',
+              color: filterRange === range.id ? 'white' : 'var(--text-muted)',
+              boxShadow: filterRange === range.id ? 'var(--shadow)' : 'var(--shadow-sm)',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            {range.label}
+          </button>
+        ))}
+      </div>
 
-        <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', overflowX: 'auto', paddingBottom: '4px', justifyContent: 'center' }}>
-          {[
-            { id: 'today', label: 'Hoje' },
-            { id: 'week', label: '7 dias' },
-            { id: 'month', label: '30 dias' },
-            { id: 'all', label: 'Tudo' }
-          ].map(filter => (
-            <button
-              key={filter.id}
-              onClick={() => setFilterRange(filter.id)}
-              style={{
-                padding: '6px 12px', fontSize: '12px', width: 'auto',
-                backgroundColor: filterRange === filter.id ? 'var(--primary)' : 'var(--background)',
-                color: filterRange === filter.id ? 'white' : 'var(--text)',
-                border: `1px solid ${filterRange === filter.id ? 'var(--primary)' : 'var(--border)'}`,
-                borderRadius: '20px', boxShadow: 'none'
-              }}
-            >
-              {filter.label}
-            </button>
-          ))}
+      {/* Summary Stats Cards */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '32px' }}>
+        <div className="card" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--primary)' }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M20 6 9 17l-5-5"/>
+            </svg>
+            <span style={{ fontSize: '0.75rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Entregas</span>
+          </div>
+          <div style={{ fontSize: '1.75rem', fontWeight: '800' }}>{stats.totalCount}</div>
         </div>
-
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', opacity: statsLoading ? 0.6 : 1 }}>
-          <div style={{ padding: '12px', backgroundColor: 'var(--primary-light)', borderRadius: 'var(--radius)', textAlign: 'center', border: '1px solid var(--primary)' }}>
-            <p style={{ fontSize: '10px', color: 'var(--primary)', fontWeight: '700', textTransform: 'uppercase', marginBottom: '4px' }}>Entregas</p>
-            <p style={{ fontSize: '20px', fontWeight: '800', color: 'var(--secondary)' }}>{stats.totalCount}</p>
+        
+        <div className="card" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--accent)' }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+              <rect width="20" height="12" x="2" y="6" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/>
+            </svg>
+            <span style={{ fontSize: '0.75rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Ganhos</span>
           </div>
-          <div style={{ padding: '12px', backgroundColor: 'var(--primary-light)', borderRadius: 'var(--radius)', textAlign: 'center', border: '1px solid var(--primary)' }}>
-            <p style={{ fontSize: '10px', color: 'var(--primary)', fontWeight: '700', textTransform: 'uppercase', marginBottom: '4px' }}>Ganhos</p>
-            <p style={{ fontSize: '18px', fontWeight: '800', color: 'var(--secondary)' }}>R$ {stats.totalEarnings.toFixed(2)}</p>
-          </div>
+          <div style={{ fontSize: '1.5rem', fontWeight: '800' }}>R$ {stats.totalEarnings.toFixed(2)}</div>
         </div>
       </div>
 
-      <h3 className="mb-4">Lista de Entregas</h3>
-      {loading ? <p className="text-center">Carregando...</p> : (
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead>
-            <tr style={{ textAlign: 'left', borderBottom: '1px solid #cccccc' }}>
-              <th style={{ padding: '8px' }}>Data</th>
-              <th style={{ padding: '8px' }}>Local</th>
-              <th style={{ padding: '8px' }}>Valor</th>
-              <th style={{ padding: '8px' }}>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredHistory.length === 0 ? (
-              <tr><td colSpan="4" style={{ padding: '20px', textAlign: 'center', color: 'var(--text-muted)' }}>Nenhuma entrega concluída neste período.</td></tr>
-            ) : (
-              filteredHistory.map((item) => (
-                <tr key={item.id} style={{ borderBottom: '1px solid #eeeeee' }}>
-                  <td style={{ padding: '8px' }}>{item.formattedDate}</td>
-                  <td style={{ padding: '8px' }}>{item.establishmentName || item.pickupAddress || '---'}</td>
-                  <td style={{ padding: '8px' }}>R$ {item.value}</td>
-                  <td style={{ padding: '8px' }}>
-                    {item.status === 'delivered' ? <span style={{ color: 'blue' }}>Concluída</span> : <span style={{ color: 'red' }}>Cancelada</span>}
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      )}
+      <h3 style={{ marginBottom: '16px', fontSize: '1.1rem', paddingLeft: '4px' }}>Lista de Atividades</h3>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        {filteredHistory.length === 0 ? (
+          <div className="card" style={{ padding: '60px 40px', textAlign: 'center' }}>
+            <div style={{ fontSize: '3rem', marginBottom: '12px' }}>📋</div>
+            <p style={{ fontWeight: '600', color: 'var(--text-muted)' }}>Nenhuma entrega encontrada para este período.</p>
+          </div>
+        ) : (
+          filteredHistory.map((item) => (
+            <div key={item.id} className="card fade-in" style={{ padding: '20px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{ 
+                    width: '32px', height: '32px', 
+                    borderRadius: '8px', 
+                    background: 'var(--primary-light)', 
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    color: 'var(--primary)'
+                  }}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M3 9h18v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9Z"/><path d="m3 9 2.45-4.9A2 2 0 0 1 7.24 3h9.52a2 2 0 0 1 1.8 1.1L21 9"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '0.85rem', fontWeight: '700' }}>{item.establishmentName || 'Estabelecimento'}</div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{item.formattedDate}</div>
+                  </div>
+                </div>
+                <div className={`badge ${item.status === 'delivered' ? 'badge-primary' : ''}`} style={{ 
+                  background: item.status === 'delivered' ? 'var(--primary-light)' : '#fee2e2',
+                  color: item.status === 'delivered' ? 'var(--primary-dark)' : 'var(--error)'
+                }}>
+                  {item.status === 'delivered' ? 'Concluída' : 'Cancelada'}
+                </div>
+              </div>
+
+              <div style={{ 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: 'center', 
+                paddingTop: '16px', 
+                borderTop: '1px solid var(--surface-muted)' 
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>ID: #{item.id.slice(-4).toUpperCase()}</span>
+                </div>
+                <div style={{ fontSize: '1.1rem', fontWeight: '800', color: 'var(--secondary)' }}>
+                  R$ {Number(item.value || 0).toFixed(2).replace('.', ',')}
+                </div>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+      
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 }

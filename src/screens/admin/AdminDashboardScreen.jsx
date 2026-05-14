@@ -13,7 +13,7 @@ export default function AdminDashboardScreen() {
         filteredDeliveries: []
     });
     const [allDeliveries, setAllDeliveries] = useState([]);
-    const [filter, setFilter] = useState('all');
+    const [filter, setFilter] = useState('today');
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
 
@@ -25,7 +25,13 @@ export default function AdminDashboardScreen() {
 
         const filtered = deliveries.filter(d => {
             if (currentFilter === 'all') return true;
-            const deliveryDate = d.createdAt?.toDate ? d.createdAt.toDate() : new Date(d.createdAt);
+            
+            // Priorizar data de finalização para relatórios históricos
+            const dateSource = (d.status === 'delivered' && d.completedAt) ? d.completedAt : d.createdAt;
+            if (!dateSource) return false;
+
+            const deliveryDate = dateSource.toDate ? dateSource.toDate() : new Date(dateSource.seconds ? dateSource.seconds * 1000 : dateSource);
+            
             if (currentFilter === 'today') return deliveryDate >= startOfToday;
             if (currentFilter === 'week') return deliveryDate >= last7Days;
             if (currentFilter === 'month') return deliveryDate >= last30Days;
@@ -66,9 +72,13 @@ export default function AdminDashboardScreen() {
             establishments,
             couriers,
             filteredDeliveries: filtered.sort((a, b) => {
-                const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt);
-                const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(b.createdAt);
-                return dateB - dateA;
+                const dateA_source = (a.status === 'delivered' && a.completedAt) ? a.completedAt : a.createdAt;
+                const dateB_source = (b.status === 'delivered' && b.completedAt) ? b.completedAt : b.createdAt;
+                
+                const timeA = dateA_source?.toDate ? dateA_source.toDate().getTime() : 0;
+                const timeB = dateB_source?.toDate ? dateB_source.toDate().getTime() : 0;
+                
+                return timeB - timeA;
             })
         };
     };
@@ -256,22 +266,58 @@ export default function AdminDashboardScreen() {
 
             {/* Filtros */}
             <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', flexWrap: 'wrap' }}>
-                <button
-                    onClick={() => setFilter('today')}
-                    style={{ backgroundColor: filter === 'today' ? 'var(--primary)' : '#ccc', width: 'auto', padding: '8px 15px', fontSize: '14px' }}
-                >Hoje</button>
-                <button
-                    onClick={() => setFilter('week')}
-                    style={{ backgroundColor: filter === 'week' ? 'var(--primary)' : '#ccc', width: 'auto', padding: '8px 15px', fontSize: '14px' }}
-                >Esta Semana</button>
-                <button
-                    onClick={() => setFilter('month')}
-                    style={{ backgroundColor: filter === 'month' ? 'var(--primary)' : '#ccc', width: 'auto', padding: '8px 15px', fontSize: '14px' }}
-                >Este Mês</button>
-                <button
-                    onClick={() => setFilter('all')}
-                    style={{ backgroundColor: filter === 'all' ? 'var(--primary)' : '#ccc', width: 'auto', padding: '8px 15px', fontSize: '14px' }}
-                >Sempre</button>
+                    <button
+                        onClick={() => setFilter('today')}
+                        style={{ 
+                            backgroundColor: filter === 'today' ? 'var(--primary)' : '#ccc', 
+                            width: 'auto', 
+                            padding: '8px 20px', 
+                            fontSize: '14px',
+                            borderRadius: 'var(--radius-full)',
+                            border: 'none',
+                            color: 'white',
+                            fontWeight: '600'
+                        }}
+                    >Hoje</button>
+                    <button
+                        onClick={() => setFilter('week')}
+                        style={{ 
+                            backgroundColor: filter === 'week' ? 'var(--primary)' : '#ccc', 
+                            width: 'auto', 
+                            padding: '8px 20px', 
+                            fontSize: '14px',
+                            borderRadius: 'var(--radius-full)',
+                            border: 'none',
+                            color: 'white',
+                            fontWeight: '600'
+                        }}
+                    >Esta Semana</button>
+                    <button
+                        onClick={() => setFilter('month')}
+                        style={{ 
+                            backgroundColor: filter === 'month' ? 'var(--primary)' : '#ccc', 
+                            width: 'auto', 
+                            padding: '8px 20px', 
+                            fontSize: '14px',
+                            borderRadius: 'var(--radius-full)',
+                            border: 'none',
+                            color: 'white',
+                            fontWeight: '600'
+                        }}
+                    >Este Mês</button>
+                    <button
+                        onClick={() => setFilter('all')}
+                        style={{ 
+                            backgroundColor: filter === 'all' ? 'var(--primary)' : '#ccc', 
+                            width: 'auto', 
+                            padding: '8px 20px', 
+                            fontSize: '14px',
+                            borderRadius: 'var(--radius-full)',
+                            border: 'none',
+                            color: 'white',
+                            fontWeight: '600'
+                        }}
+                    >Sempre</button>
             </div>
 
             {/* Resumo Geral */}
@@ -309,10 +355,11 @@ export default function AdminDashboardScreen() {
                         </thead>
                         <tbody>
                             {stats.filteredDeliveries.map((d, i) => {
-                                const date = d.createdAt?.toDate ? d.createdAt.toDate() : new Date(d.createdAt);
+                                const ds = (d.status === 'delivered' && d.completedAt) ? d.completedAt : d.createdAt;
+                                const date = ds?.toDate ? ds.toDate() : (ds?.seconds ? new Date(ds.seconds * 1000) : new Date(0));
                                 return (
                                     <tr key={i} style={{ borderBottom: '1px solid var(--border)', fontSize: '14px' }}>
-                                        <td style={{ padding: '10px' }}>{date.toLocaleString('pt-BR')}</td>
+                                        <td style={{ padding: '10px' }}>{date.toLocaleDateString('pt-BR')} {date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</td>
                                         <td style={{ padding: '10px' }}>{d.establishmentName}</td>
                                         <td style={{ padding: '10px' }}>{d.courierName || '---'}</td>
                                         <td style={{ padding: '10px' }}>R$ {parseFloat(d.value).toFixed(2)}</td>

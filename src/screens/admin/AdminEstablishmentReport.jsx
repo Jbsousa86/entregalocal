@@ -20,7 +20,12 @@ export default function AdminEstablishmentReport() {
 
         const filtered = deliveries.filter(d => {
             if (currentFilter === 'all') return true;
-            const deliveryDate = d.createdAt?.toDate ? d.createdAt.toDate() : new Date(d.createdAt);
+            
+            const dateSource = (d.status === 'delivered' && d.completedAt) ? d.completedAt : d.createdAt;
+            if (!dateSource) return false;
+
+            const deliveryDate = dateSource.toDate ? dateSource.toDate() : new Date(dateSource.seconds ? dateSource.seconds * 1000 : dateSource);
+            
             if (currentFilter === 'today') return deliveryDate >= startOfToday;
             if (currentFilter === 'week') return deliveryDate >= last7Days;
             if (currentFilter === 'month') return deliveryDate >= last30Days;
@@ -244,7 +249,7 @@ export default function AdminEstablishmentReport() {
                                     <td style={{ padding: '10px', display: 'flex', flexDirection: 'column', gap: '5px' }}>
                                         <button
                                             onClick={() => updateDeliveryFee(id, est.tempFee || est.deliveryFee)}
-                                            style={{ width: 'auto', padding: '5px 10px', fontSize: '12px' }}
+                                            style={{ width: 'auto', padding: '5px 12px', fontSize: '12px', borderRadius: 'var(--radius)' }}
                                         >
                                             Salvar Taxa
                                         </button>
@@ -252,8 +257,9 @@ export default function AdminEstablishmentReport() {
                                             onClick={() => toggleBlock(id, est.isBlocked)}
                                             style={{
                                                 width: 'auto',
-                                                padding: '5px 10px',
+                                                padding: '5px 12px',
                                                 fontSize: '12px',
+                                                borderRadius: 'var(--radius)',
                                                 backgroundColor: est.isBlocked ? '#28a745' : 'var(--error)'
                                             }}
                                         >

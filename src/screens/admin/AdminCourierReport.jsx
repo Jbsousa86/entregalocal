@@ -20,7 +20,12 @@ export default function AdminCourierReport() {
 
         const filtered = deliveries.filter(d => {
             if (currentFilter === 'all') return true;
-            const deliveryDate = d.createdAt?.toDate ? d.createdAt.toDate() : new Date(d.createdAt);
+            
+            const dateSource = (d.status === 'delivered' && d.completedAt) ? d.completedAt : d.createdAt;
+            if (!dateSource) return false;
+
+            const deliveryDate = dateSource.toDate ? dateSource.toDate() : new Date(dateSource.seconds ? dateSource.seconds * 1000 : dateSource);
+            
             if (currentFilter === 'today') return deliveryDate >= startOfToday;
             if (currentFilter === 'week') return deliveryDate >= last7Days;
             if (currentFilter === 'month') return deliveryDate >= last30Days;
@@ -211,8 +216,9 @@ export default function AdminCourierReport() {
                                             onClick={() => toggleBlock(id, courier.isBlocked)}
                                             style={{
                                                 width: 'auto',
-                                                padding: '5px 10px',
+                                                padding: '8px 16px',
                                                 fontSize: '12px',
+                                                borderRadius: 'var(--radius)',
                                                 backgroundColor: courier.isBlocked ? '#28a745' : 'var(--error)'
                                             }}
                                         >

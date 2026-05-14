@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { signInWithEmailAndPassword } from 'firebase/auth';
+import { signInWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { auth, db } from '../../firebaseClient';
 import { useNavigate } from 'react-router-dom';
@@ -8,11 +8,13 @@ export default function AdminLoginScreen() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
+    const [statusMessage, setStatusMessage] = useState('');
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
 
     const handleLogin = async () => {
         setError('');
+        setStatusMessage('');
         if (!email || !password) {
             setError('Por favor, preencha todos os campos.');
             return;
@@ -38,12 +40,32 @@ export default function AdminLoginScreen() {
         }
     };
 
+    const handleResetPassword = async () => {
+        setError('');
+        setStatusMessage('');
+        if (!email) {
+            setError('Por favor, digite seu email de administrador.');
+            return;
+        }
+
+        setLoading(true);
+        try {
+            await sendPasswordResetEmail(auth, email);
+            setStatusMessage('Enviamos um email para redefinir sua senha.');
+        } catch (err) {
+            setError('Erro ao enviar email: ' + err.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     return (
         <div className="login-screen card fade-in">
             <h2 className="text-center mb-6">🔒 Admin Login</h2>
             <p className="text-center mb-6">Acesse o painel de controle</p>
 
-            {error && <div className="error-message">{error}</div>}
+            {error && <div className="error-message" style={{ color: 'var(--error)', padding: '10px', backgroundColor: '#fee2e2', borderRadius: '8px', marginBottom: '15px', fontSize: '14px' }}>{error}</div>}
+            {statusMessage && <div className="success-message" style={{ color: '#065f46', padding: '10px', backgroundColor: '#dcfce7', borderRadius: '8px', marginBottom: '15px', fontSize: '14px' }}>{statusMessage}</div>}
 
             <div className="form-group">
                 <label>Email Admin</label>
@@ -51,6 +73,7 @@ export default function AdminLoginScreen() {
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
+                    placeholder="admin@exemplo.com"
                 />
             </div>
 
@@ -63,12 +86,18 @@ export default function AdminLoginScreen() {
                 />
             </div>
 
-            <button onClick={handleLogin} disabled={loading} className="mb-4" style={{ backgroundColor: 'var(--secondary)' }}>
+            <button onClick={handleLogin} disabled={loading} className="mb-2" style={{ backgroundColor: 'var(--secondary)' }}>
                 {loading ? 'Autenticando...' : 'Entrar no Painel'}
             </button>
 
-            <p className="text-center" style={{ fontSize: '14px' }}>
-                <span className="link" onClick={() => navigate('/login')}>
+            <p className="text-center mb-6">
+                <span className="link" onClick={handleResetPassword} style={{ fontSize: '13px', cursor: 'pointer', color: 'var(--primary)', textDecoration: 'underline' }}>
+                    Esqueceu a senha? Clique aqui para recuperar
+                </span>
+            </p>
+
+            <p className="text-center" style={{ fontSize: '14px', borderTop: '1px solid #eee', paddingTop: '15px' }}>
+                <span className="link" onClick={() => navigate('/login')} style={{ cursor: 'pointer' }}>
                     Voltar para login comum
                 </span>
             </p>

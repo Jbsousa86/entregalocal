@@ -142,10 +142,15 @@ export default function DeliveryDetailsScreen() {
         const pickupCode = delivery.pickupCode;
         const groupSize = selectedGroup.length;
 
-        for (const item of selectedGroup) {
-          const deliveryRef = doc(db, 'deliveries', item.id);
-          const deliveryDoc = await transaction.get(deliveryRef);
+        const deliveryRefs = selectedGroup.map((item) => doc(db, 'deliveries', item.id));
+        const deliveryDocs = [];
 
+        for (const deliveryRef of deliveryRefs) {
+          const deliveryDoc = await transaction.get(deliveryRef);
+          deliveryDocs.push({ ref: deliveryRef, doc: deliveryDoc });
+        }
+
+        for (const { ref, doc: deliveryDoc } of deliveryDocs) {
           if (!deliveryDoc.exists()) {
             throw new Error('Uma das entregas do grupo não foi encontrada.');
           }
@@ -153,7 +158,9 @@ export default function DeliveryDetailsScreen() {
           if (deliveryDoc.data().status !== 'pending') {
             throw new Error('Uma das entregas do grupo já foi aceita por outro entregador.');
           }
+        }
 
+        for (const deliveryRef of deliveryRefs) {
           transaction.update(deliveryRef, {
             status: 'accepted',
             courierId: auth.currentUser.uid,

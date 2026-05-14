@@ -35,10 +35,10 @@ export default function DeliveryDetailsScreen() {
   const navigate = useNavigate();
   const { deliveryId } = location.state || {};
   const [delivery, setDelivery] = useState(null);
-  const [nearbyCount, setNearbyCount] = useState(0);
+  const [otherDeliveries, setOtherDeliveries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showGroupChoice, setShowGroupChoice] = useState(false);
-  const [groupCandidates, setGroupCandidates] = useState([]);
+  const [selectedDeliveries, setSelectedDeliveries] = useState({});
 
   useEffect(() => {
     if (!deliveryId) {
@@ -66,26 +66,25 @@ export default function DeliveryDetailsScreen() {
           }
 
           setDelivery({ id: docSnap.id, ...data, establishmentName: currentEstName });
+          setSelectedDeliveries({ [docSnap.id]: true });
 
+          // Buscar apenas entregas do mesmo estabelecimento (sem filtros de endereço)
           const pendingQuery = query(
             collection(db, 'deliveries'),
             where('status', '==', 'pending'),
             where('establishmentId', '==', data.establishmentId)
           );
           const pendingSnapshot = await getDocs(pendingQuery);
-          const groupable = [];
+          const others = [];
 
           pendingSnapshot.forEach((docItem) => {
-            const pendingData = docItem.data();
             if (docItem.id === docSnap.id) return;
-            if (!samePickupAddress(data.pickupAddress, pendingData.pickupAddress)) return;
-            if (!isNearbyAddress(data.deliveryAddress, pendingData.deliveryAddress)) return;
-            groupable.push(docItem.id);
+            others.push({ id: docItem.id, ...docItem.data() });
           });
 
-          setNearbyCount(Math.min(groupable.length, 2));
+          setOtherDeliveries(others);
         } else {
-          alert('Entrega n�o encontrada ou j� removida.');
+          alert('Entrega não encontrada ou já removida.');
           navigate('/courier/home');
         }
       } catch (error) {
@@ -101,37 +100,56 @@ export default function DeliveryDetailsScreen() {
   const handleAccept = async () => {
     if (!auth.currentUser || !delivery) return;
 
-    try {
-      const pendingQuery = query(
-        collection(db, 'deliveries'),
-        where('status', '==', 'pending'),
-        where('establishmentId', '==', delivery.establishmentId)
-      );
-      const pendingSnapshot = await getDocs(pendingQuery);
-
-      const candidates = [];
-      pendingSnapshot.forEach((docItem) => {
-        const data = docItem.data();
-        if (docItem.id === delivery.id) return;
-        if (!samePickupAddress(delivery.pickupAddress, data.pickupAddress)) return;
-        if (!isNearbyAddress(delivery.deliveryAddress, data.deliveryAddress)) return;
-        if (data.establishmentId !== delivery.establishmentId) return;
-        candidates.push({ id: docItem.id, data });
-      });
-
-      // Se houver candidatos, mostrar diálogo de escolha
-      if (candidates.length > 0) {
-        setGroupCandidates(candidates);
-        setShowGroupChoice(true);
-        return;
-      }
-
-      // Caso contrário, aceitar sem agrupar
-      await acceptDelivery([{ id: delivery.id, data: delivery }]);
-    } catch (error) {
-      console.error('Erro ao buscar candidatos de agrupamento:', error);
-      alert('Erro ao processar entrega. Tente novamente.');
+    // Se houver outras entregas compatíveis, mostrar seletor
+    if (otherDeliveries.length > 0) {
+      setShowGroupChoice(true);
+      return;
     }
+
+    // Caso contrário, aceitar apenas esta
+    await acceptDelivery([{ id: delivery.id, data: delivery }]);
+  };
+
+  const toggleDeliverySelection = (deliveryId) => {
+    setSelectedDeliveries((prev) => {
+      const selected = Object.keys(prev).filter((k) => prev[k]);
+      
+      if (prev[deliveryId]) {
+        // Desselecionar
+        return { ...prev, [deliveryId]: false };
+      } else if (selected.length < 3) {
+        // Selecionar se não exceder 3
+        return { ...prev, [deliveryId]: true };
+      }
+      
+      return prev;
+    });
+  };
+
+  const handleConfirmSelection = async () => {
+    const selectedIds = Object.keys(selectedDeliveries).filter((k) => selectedDeliveries[k]);
+    
+    if (selectedIds.length === 0) {
+      alert('Selecione pelo menos um pedido.');
+      return;
+    }
+
+    setShowGroupChoice(false);
+
+    const deliveriesToAccept = selectedIds.map((id) => {
+      if (id === delivery.id) {
+        return { id: delivery.id, data: delivery };
+      }
+      const other = otherDeliveries.find((d) => d.id === id);
+      return { id, data: other };
+    });
+
+    await acceptDelivery(deliveriesToAccept);
+  };
+
+  const handleAcceptSolo = async () => {
+    setShowGroupChoice(false);
+    await acceptDelivery([{ id: delivery.id, data: delivery }]);
   };
 
   const acceptDelivery = async (deliveriesToAccept) => {
@@ -209,20 +227,6 @@ export default function DeliveryDetailsScreen() {
         setLoading(false);
       }
     }
-  };
-
-  const handleAcceptSolo = async () => {
-    setShowGroupChoice(false);
-    await acceptDelivery([{ id: delivery.id, data: delivery }]);
-  };
-
-  const handleAcceptGrouped = async () => {
-    setShowGroupChoice(false);
-    const selectedGroup = [
-      { id: delivery.id, data: delivery },
-      ...groupCandidates.slice(0, 2)
-    ];
-    await acceptDelivery(selectedGroup);
   };
 
   if (loading) return (
@@ -320,13 +324,13 @@ export default function DeliveryDetailsScreen() {
         )}
       </div>
 
-      {nearbyCount > 0 && (
+      {otherDeliveries.length > 0 && (
         <div className="card" style={{ padding: '18px', marginBottom: '24px', backgroundColor: '#f8fafc', border: '1px solid var(--border)' }}>
           <p style={{ margin: 0, fontWeight: '700', color: 'var(--secondary)' }}>
-            Este pedido pode ser agrupado com mais {nearbyCount} pedido{nearbyCount > 1 ? 's' : ''} do mesmo estabelecimento.
+            Este pedido pode ser agrupado com até 3 pedidos do mesmo estabelecimento.
           </p>
           <p style={{ marginTop: '8px', color: 'var(--text-muted)' }}>
-            O sistema aceitar� at� 3 pedidos juntos para facilitar a viagem do entregador.
+            Ao aceitar, você poderá selecionar até 3 pedidos para levar juntos.
           </p>
         </div>
       )}
@@ -351,22 +355,44 @@ export default function DeliveryDetailsScreen() {
             animation: 'slideUp 0.3s ease'
           }}>
             <h3 style={{ fontSize: '1.1rem', fontWeight: '800', marginBottom: '12px', marginTop: 0 }}>
-              Deseja agrupar os pedidos?
+              Selecionar pedidos para agrupar
             </h3>
-            <p style={{ color: 'var(--text-muted)', marginBottom: '24px', margin: '12px 0 24px 0' }}>
-              Você pode aceitar este pedido sozinho ou agrupá-lo com {groupCandidates.length} pedido{groupCandidates.length > 1 ? 's' : ''} compatível{groupCandidates.length > 1 ? 's' : ''}.
+            <p style={{ color: 'var(--text-muted)', marginBottom: '12px' }}>
+              Selecione até 3 pedidos do mesmo estabelecimento (inclui este pedido).
             </p>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div style={{ maxHeight: '240px', overflow: 'auto', marginBottom: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '8px 0', borderBottom: '1px solid var(--border)' }}>
+                <input type="checkbox" checked={!!selectedDeliveries[delivery.id]} onChange={() => toggleDeliverySelection(delivery.id)} />
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: '700' }}>Este pedido</div>
+                  <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{delivery.deliveryAddress}</div>
+                </div>
+                <div style={{ fontWeight: '800', color: 'var(--primary)' }}>R$ {delivery.value}</div>
+              </div>
+
+              {otherDeliveries.map((d) => (
+                <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '8px 0', borderBottom: '1px solid var(--border)' }}>
+                  <input type="checkbox" checked={!!selectedDeliveries[d.id]} onChange={() => toggleDeliverySelection(d.id)} />
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: '700' }}>{d.customerName || 'Pedido'}</div>
+                    <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{d.deliveryAddress}</div>
+                  </div>
+                  <div style={{ fontWeight: '800', color: 'var(--primary)' }}>R$ {d.value}</div>
+                </div>
+              ))}
+            </div>
+
+            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
               <button
-                onClick={handleAcceptGrouped}
+                onClick={handleConfirmSelection}
                 disabled={loading}
                 className="btn"
-                style={{ height: '50px' }}
+                style={{ flex: 1, height: '50px' }}
               >
-                {loading ? 'Processando...' : `Agrupar ${1 + groupCandidates.length} Pedido${1 + groupCandidates.length > 1 ? 's' : ''}`}
+                {loading ? 'Processando...' : `Confirmar seleção (${Object.keys(selectedDeliveries).filter(k=>selectedDeliveries[k]).length}/3)`}
               </button>
-              
+
               <button
                 onClick={handleAcceptSolo}
                 disabled={loading}
@@ -375,7 +401,7 @@ export default function DeliveryDetailsScreen() {
               >
                 Aceitar Apenas Este
               </button>
-
+            
               <button
                 onClick={() => setShowGroupChoice(false)}
                 disabled={loading}
@@ -387,7 +413,8 @@ export default function DeliveryDetailsScreen() {
                   fontWeight: '700',
                   cursor: 'pointer',
                   color: 'var(--secondary)',
-                  fontSize: '1rem'
+                  fontSize: '1rem',
+                  padding: '0 12px'
                 }}
               >
                 Cancelar

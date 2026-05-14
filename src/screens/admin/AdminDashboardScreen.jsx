@@ -10,7 +10,10 @@ export default function AdminDashboardScreen() {
         statusCounts: {},
         establishments: {},
         couriers: {},
-        filteredDeliveries: []
+        filteredDeliveries: [],
+        totalRegistrations: 0,
+        totalEstablishments: 0,
+        totalCouriers: 0
     });
     const [allDeliveries, setAllDeliveries] = useState([]);
     const [filter, setFilter] = useState('today');
@@ -102,6 +105,13 @@ export default function AdminDashboardScreen() {
                     establishmentMap[docSnap.id] = docSnap.data();
                 });
 
+                // Fetch all couriers to count os entregadores cadastrados
+                const courierSnapshot = await getDocs(collection(db, 'couriers'));
+                const courierMap = {};
+                courierSnapshot.forEach(docSnap => {
+                    courierMap[docSnap.id] = docSnap.data();
+                });
+
                 // Merge with stats
                 Object.keys(establishmentMap).forEach(estId => {
                     if (!baseStats.establishments[estId]) {
@@ -110,7 +120,12 @@ export default function AdminDashboardScreen() {
                     baseStats.establishments[estId].deliveryFee = establishmentMap[estId].deliveryFee || 2.00;
                 });
 
-                setStats(baseStats);
+                setStats({
+                    ...baseStats,
+                    totalEstablishments: Object.keys(establishmentMap).length,
+                    totalCouriers: Object.keys(courierMap).length,
+                    totalRegistrations: Object.keys(establishmentMap).length + Object.keys(courierMap).length
+                });
             } catch (error) {
                 console.error("Erro ao carregar dados admin:", error);
             } finally {
@@ -152,7 +167,12 @@ export default function AdminDashboardScreen() {
                     }
                 });
 
-                return newStats;
+                return {
+                    ...newStats,
+                    totalEstablishments: prev.totalEstablishments,
+                    totalCouriers: prev.totalCouriers,
+                    totalRegistrations: prev.totalRegistrations
+                };
             });
         }
     }, [filter]);
@@ -322,18 +342,21 @@ export default function AdminDashboardScreen() {
 
             {/* Resumo Geral */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '15px', marginBottom: '30px' }}>
-
+                <div className="card" style={{ textAlign: 'center', padding: '20px' }}>
+                    <h3 style={{ fontSize: '14px', color: 'var(--text-muted)' }}>Cadastros Totais</h3>
+                    <p style={{ fontSize: '32px', fontWeight: 'bold', color: 'var(--primary)' }}>{stats.totalRegistrations}</p>
+                </div>
+                <div className="card" style={{ textAlign: 'center', padding: '20px' }}>
+                    <h3 style={{ fontSize: '14px', color: 'var(--text-muted)' }}>Lojistas</h3>
+                    <p style={{ fontSize: '32px', fontWeight: 'bold', color: 'var(--primary)' }}>{stats.totalEstablishments}</p>
+                </div>
+                <div className="card" style={{ textAlign: 'center', padding: '20px' }}>
+                    <h3 style={{ fontSize: '14px', color: 'var(--text-muted)' }}>Entregadores</h3>
+                    <p style={{ fontSize: '32px', fontWeight: 'bold', color: 'var(--primary)' }}>{stats.totalCouriers}</p>
+                </div>
                 <div className="card" style={{ textAlign: 'center', padding: '20px' }}>
                     <h3 style={{ fontSize: '14px', color: 'var(--text-muted)' }}>Total de Entregas</h3>
                     <p style={{ fontSize: '32px', fontWeight: 'bold', color: 'var(--primary)' }}>{stats.totalDeliveries}</p>
-                </div>
-                <div className="card" style={{ textAlign: 'center', padding: '20px' }}>
-                    <h3 style={{ fontSize: '14px', color: 'var(--text-muted)' }}>Valor Total</h3>
-                    <p style={{ fontSize: '32px', fontWeight: 'bold', color: 'var(--primary)' }}>R$ {stats.totalValue.toFixed(2)}</p>
-                </div>
-                <div className="card" style={{ textAlign: 'center', padding: '20px' }}>
-                    <h3 style={{ fontSize: '14px', color: 'var(--text-muted)' }}>Finalizadas</h3>
-                    <p style={{ fontSize: '32px', fontWeight: 'bold', color: 'var(--primary)' }}>{stats.statusCounts['delivered'] || 0}</p>
                 </div>
             </div>
 

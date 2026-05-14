@@ -215,7 +215,7 @@ export default function AdminEstablishmentReport() {
                     <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '500px' }}>
                         <thead>
                             <tr style={{ borderBottom: '2px solid var(--border)', textAlign: 'left' }}>
-                                <th style={{ padding: '10px' }}>Nome</th>
+                                <th style={{ padding: '10px' }}>Nome do Estabelecimento</th>
                                 <th style={{ padding: '10px' }}>Entregas</th>
                                 <th style={{ padding: '10px' }}>Total (R$)</th>
                                 <th style={{ padding: '10px' }}>Taxa Atual</th>
@@ -268,6 +268,13 @@ export default function AdminEstablishmentReport() {
                                     </td>
                                 </tr>
                             ))}
+                            {Object.entries(stats.establishments).length === 0 && (
+                                <tr>
+                                    <td colSpan="6" style={{ padding: '20px', textAlign: 'center', color: '#666' }}>
+                                        Nenhum lojista cadastrado encontrado.
+                                    </td>
+                                </tr>
+                            )}
                         </tbody>
                     </table>
                 </div>

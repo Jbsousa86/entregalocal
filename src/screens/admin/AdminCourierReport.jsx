@@ -189,7 +189,7 @@ export default function AdminCourierReport() {
                     <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                         <thead>
                             <tr style={{ borderBottom: '2px solid var(--border)', textAlign: 'left' }}>
-                                <th style={{ padding: '10px' }}>Nome</th>
+                                <th style={{ padding: '10px' }}>Nome do Entregador</th>
                                 <th style={{ padding: '10px' }}>Entregas</th>
                                 <th style={{ padding: '10px' }}>Total Gerado (R$)</th>
                                 <th style={{ padding: '10px' }}>Status</th>
@@ -227,6 +227,13 @@ export default function AdminCourierReport() {
                                     </td>
                                 </tr>
                             ))}
+                            {Object.entries(stats.couriers).length === 0 && (
+                                <tr>
+                                    <td colSpan="5" style={{ padding: '20px', textAlign: 'center', color: '#666' }}>
+                                        Nenhum entregador cadastrado encontrado.
+                                    </td>
+                                </tr>
+                            )}
                         </tbody>
                     </table>
                 </div>

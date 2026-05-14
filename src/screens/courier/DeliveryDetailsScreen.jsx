@@ -114,6 +114,8 @@ export default function DeliveryDetailsScreen() {
         if (docItem.id === delivery.id) return;
         if (!samePickupAddress(delivery.pickupAddress, data.pickupAddress)) return;
         if (!isNearbyAddress(delivery.deliveryAddress, data.deliveryAddress)) return;
+        // Garantir que é do mesmo estabelecimento
+        if (data.establishmentId !== delivery.establishmentId) return;
         groupCandidates.push({ id: docItem.id, data });
       });
 
@@ -157,6 +159,11 @@ export default function DeliveryDetailsScreen() {
 
           if (deliveryDoc.data().status !== 'pending') {
             throw new Error('Uma das entregas do grupo já foi aceita por outro entregador.');
+          }
+
+          // Garantir que todas as entregas são do mesmo estabelecimento
+          if (deliveryDoc.data().establishmentId !== delivery.establishmentId) {
+            throw new Error('Todas as entregas do grupo devem ser do mesmo estabelecimento.');
           }
         }
 

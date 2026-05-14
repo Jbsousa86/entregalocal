@@ -13,7 +13,14 @@ export default function AcceptedDeliveryScreen() {
   const groupedDeliveries = useMemo(() => {
     if (activeDeliveries.length === 0) return [];
     const groupKey = activeDeliveries[0].groupId || activeDeliveries[0].id;
-    return activeDeliveries.filter(d => (d.groupId || d.id) === groupKey);
+    const mainEstablishmentId = activeDeliveries[0].establishmentId;
+    
+    // Filtrar apenas entregas do mesmo estabelecimento
+    return activeDeliveries.filter(d => {
+      const isInGroup = (d.groupId || d.id) === groupKey;
+      const isSameEstablishment = d.establishmentId === mainEstablishmentId;
+      return isInGroup && isSameEstablishment;
+    });
   }, [activeDeliveries]);
 
   const activeDelivery = groupedDeliveries[0] || null;
@@ -54,7 +61,7 @@ export default function AcceptedDeliveryScreen() {
 
     if (newStatus === 'in_progress') {
       if (inputCode !== activeDelivery.pickupCode) {
-        setError('Código de coleta incorreto. Peça o código ao lojista.');
+        setError('Cï¿½digo de coleta incorreto. Peï¿½a o cï¿½digo ao lojista.');
         return;
       }
       setError('');
@@ -82,7 +89,7 @@ export default function AcceptedDeliveryScreen() {
       <div className="accepted-delivery-screen fade-in" style={{ padding: '40px 24px', textAlign: 'center' }}>
         <div style={{ fontSize: '4rem', marginBottom: '24px' }}>???</div>
         <h2 style={{ fontSize: '1.5rem', fontWeight: '800', marginBottom: '12px' }}>Nenhuma entrega ativa</h2>
-        <p style={{ color: 'var(--text-muted)', marginBottom: '32px' }}>Você não possui nenhuma entrega em andamento no momento.</p>
+        <p style={{ color: 'var(--text-muted)', marginBottom: '32px' }}>Vocï¿½ nï¿½o possui nenhuma entrega em andamento no momento.</p>
         <button onClick={() => navigate('/courier/home')} className="btn">Voltar para Home</button>
       </div>
     );
@@ -231,7 +238,7 @@ export default function AcceptedDeliveryScreen() {
         {activeDelivery.status === 'arrived_pickup' && (
           <div className="card fade-in" style={{ padding: '24px', textAlign: 'center', border: '2px solid var(--primary)' }}>
             <label style={{ display: 'block', marginBottom: '16px', fontWeight: '800', fontSize: '0.9rem', textTransform: 'uppercase', color: 'var(--primary)' }}>
-              Código de Coleta
+              Cï¿½digo de Coleta
             </label>
             <input
               type="text"

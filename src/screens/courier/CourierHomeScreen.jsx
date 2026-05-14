@@ -1,9 +1,36 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { collection, query, where, onSnapshot, doc, setDoc, getDoc } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth, db, messaging, getToken, onMessage } from '../../firebaseClient';
 import { useNavigate } from 'react-router-dom';
 import backgroundImage from '../../assets/image.png';
+
+const normalizeAddress = (address = '') => {
+  return address
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9 ]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+};
+
+const extractStreet = (address = '') => {
+  const normalized = normalizeAddress(address);
+  const match = normalized.match(/^(.*?)(?:\s\d|,|$)/);
+  return match ? match[1].trim() : normalized;
+};
+
+const isNearbyAddress = (a = '', b = '') => {
+  const streetA = extractStreet(a);
+  const streetB = extractStreet(b);
+  if (!streetA || !streetB) return false;
+  return streetA === streetB || streetA.includes(streetB) || streetB.includes(streetA);
+};
+
+const samePickupAddress = (a = '', b = '') => {
+  return normalizeAddress(a) === normalizeAddress(b);
+};
 
 export default function CourierHomeScreen() {
   const [isOnline, setIsOnline] = useState(false);
@@ -198,6 +225,24 @@ export default function CourierHomeScreen() {
     setRefreshKey(prev => prev + 1);
   };
 
+  const deliveriesWithGroupInfo = useMemo(() => {
+    return deliveries.map((item) => {
+      let groupCount = 0;
+      for (const other of deliveries) {
+        if (other.id === item.id) continue;
+        if (other.establishmentId !== item.establishmentId) continue;
+        if (!samePickupAddress(item.pickupAddress, other.pickupAddress)) continue;
+        if (!isNearbyAddress(item.deliveryAddress, other.deliveryAddress)) continue;
+        groupCount += 1;
+        if (groupCount >= 2) break;
+      }
+      return {
+        ...item,
+        groupCount
+      };
+    });
+  }, [deliveries]);
+
   // 4. Verificar se já existe entrega ativa vinculada a este entregador
   useEffect(() => {
     if (!auth.currentUser) return;
@@ -385,7 +430,7 @@ export default function CourierHomeScreen() {
         )}
 
         <div className="deliveries-list" style={{ opacity: hasActiveDelivery ? 0.5 : 1, pointerEvents: hasActiveDelivery ? 'none' : 'auto' }}>
-          {deliveries.map(item => (
+          {deliveriesWithGroupInfo.map(item => (
             <div key={item.id} className="card fade-in" style={{ padding: '24px', marginBottom: '16px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -420,6 +465,19 @@ export default function CourierHomeScreen() {
                   </div>
                 </div>
               </div>
+
+              {item.groupCount > 0 && (
+                <div style={{
+                  marginBottom: '16px',
+                  padding: '14px',
+                  borderRadius: '16px',
+                  background: 'rgba(59, 130, 246, 0.08)',
+                  border: '1px solid rgba(59, 130, 246, 0.18)',
+                  color: 'var(--primary)'
+                }}>
+                  Pode ser agrupado com mais {item.groupCount} pedido{item.groupCount > 1 ? 's' : ''} do mesmo estabelecimento.
+                </div>
+              )}
 
               <button 
                 onClick={() => navigate('/courier/delivery-details', { state: { deliveryId: item.id } })}

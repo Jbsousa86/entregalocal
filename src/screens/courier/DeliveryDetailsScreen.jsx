@@ -3,11 +3,39 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { doc, getDoc, runTransaction, query, collection, where, getDocs } from 'firebase/firestore';
 import { auth, db } from '../../firebaseClient';
 
+const normalizeAddress = (address = '') => {
+  return address
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9 ]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+};
+
+const extractStreet = (address = '') => {
+  const normalized = normalizeAddress(address);
+  const match = normalized.match(/^(.*?)(?:\s\d|,|$)/);
+  return match ? match[1].trim() : normalized;
+};
+
+const isNearbyAddress = (a = '', b = '') => {
+  const streetA = extractStreet(a);
+  const streetB = extractStreet(b);
+  if (!streetA || !streetB) return false;
+  return streetA === streetB || streetA.includes(streetB) || streetB.includes(streetA);
+};
+
+const samePickupAddress = (a = '', b = '') => {
+  return normalizeAddress(a) === normalizeAddress(b);
+};
+
 export default function DeliveryDetailsScreen() {
   const location = useLocation();
   const navigate = useNavigate();
   const { deliveryId } = location.state || {};
   const [delivery, setDelivery] = useState(null);
+  const [nearbyCount, setNearbyCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -24,7 +52,6 @@ export default function DeliveryDetailsScreen() {
           const data = docSnap.data();
           let currentEstName = data.establishmentName;
 
-          // Buscar nome atualizado do estabelecimento se possÃ­vel
           if (data.establishmentId) {
             try {
               const estDoc = await getDoc(doc(db, 'establishments', data.establishmentId));
@@ -32,17 +59,35 @@ export default function DeliveryDetailsScreen() {
                 currentEstName = estDoc.data().name;
               }
             } catch (err) {
-              console.error("Erro ao buscar nome do estabelecimento:", err);
+              console.error('Erro ao buscar nome do estabelecimento:', err);
             }
           }
 
           setDelivery({ id: docSnap.id, ...data, establishmentName: currentEstName });
+
+          const pendingQuery = query(
+            collection(db, 'deliveries'),
+            where('status', '==', 'pending'),
+            where('establishmentId', '==', data.establishmentId)
+          );
+          const pendingSnapshot = await getDocs(pendingQuery);
+          const groupable = [];
+
+          pendingSnapshot.forEach((docItem) => {
+            const pendingData = docItem.data();
+            if (docItem.id === docSnap.id) return;
+            if (!samePickupAddress(data.pickupAddress, pendingData.pickupAddress)) return;
+            if (!isNearbyAddress(data.deliveryAddress, pendingData.deliveryAddress)) return;
+            groupable.push(docItem.id);
+          });
+
+          setNearbyCount(Math.min(groupable.length, 2));
         } else {
-          alert('Entrega nÃ£o encontrada ou jÃ¡ removida.');
+          alert('Entrega não encontrada ou já removida.');
           navigate('/courier/home');
         }
       } catch (error) {
-        console.error("Erro ao buscar detalhes:", error);
+        console.error('Erro ao buscar detalhes:', error);
       } finally {
         setLoading(false);
       }
@@ -52,50 +97,85 @@ export default function DeliveryDetailsScreen() {
   }, [deliveryId, navigate]);
 
   const handleAccept = async () => {
-    if (!auth.currentUser) return;
+    if (!auth.currentUser || !delivery) return;
     setLoading(true);
+
     try {
+      const pendingQuery = query(
+        collection(db, 'deliveries'),
+        where('status', '==', 'pending'),
+        where('establishmentId', '==', delivery.establishmentId)
+      );
+      const pendingSnapshot = await getDocs(pendingQuery);
+
+      const groupCandidates = [];
+      pendingSnapshot.forEach((docItem) => {
+        const data = docItem.data();
+        if (docItem.id === delivery.id) return;
+        if (!samePickupAddress(delivery.pickupAddress, data.pickupAddress)) return;
+        if (!isNearbyAddress(delivery.deliveryAddress, data.deliveryAddress)) return;
+        groupCandidates.push({ id: docItem.id, data });
+      });
+
+      const selectedGroup = [
+        { id: delivery.id, data: delivery },
+        ...groupCandidates.slice(0, 2)
+      ];
+
       await runTransaction(db, async (transaction) => {
-        // Verificar se o entregador jÃ¡ tem uma entrega ativa
         const activeQuery = query(
           collection(db, 'deliveries'),
           where('courierId', '==', auth.currentUser.uid),
           where('status', 'in', ['accepted', 'arrived_pickup', 'in_progress'])
         );
-        const activeSnapshot = await getDocs(activeQuery);
+        const activeSnapshot = await transaction.get(activeQuery);
 
         if (!activeSnapshot.empty) {
-          throw new Error("VocÃª jÃ¡ possui uma entrega em andamento. Conclua-a antes de aceitar uma nova.");
-        }
-
-        const deliveryRef = doc(db, 'deliveries', deliveryId);
-        const deliveryDoc = await transaction.get(deliveryRef);
-
-        if (!deliveryDoc.exists()) {
-          throw new Error("Entrega nÃ£o encontrada.");
-        }
-
-        if (deliveryDoc.data().status !== 'pending') {
-          throw new Error("Esta entrega jÃ¡ foi aceita por outro entregador.");
+          throw new Error('Você já possui uma entrega em andamento. Conclua-a antes de aceitar uma nova.');
         }
 
         const courierRef = doc(db, 'couriers', auth.currentUser.uid);
         const courierDoc = await transaction.get(courierRef);
         const courierName = (courierDoc.exists() && courierDoc.data().name) ? courierDoc.data().name : 'Entregador';
 
-        transaction.update(deliveryRef, {
-          status: 'accepted',
-          courierId: auth.currentUser.uid,
-          courierName: courierName
-        });
+        const groupId = delivery.id;
+        const pickupCode = delivery.pickupCode;
+        const groupSize = selectedGroup.length;
+
+        for (const item of selectedGroup) {
+          const deliveryRef = doc(db, 'deliveries', item.id);
+          const deliveryDoc = await transaction.get(deliveryRef);
+
+          if (!deliveryDoc.exists()) {
+            throw new Error('Uma das entregas do grupo não foi encontrada.');
+          }
+
+          if (deliveryDoc.data().status !== 'pending') {
+            throw new Error('Uma das entregas do grupo já foi aceita por outro entregador.');
+          }
+
+          transaction.update(deliveryRef, {
+            status: 'accepted',
+            courierId: auth.currentUser.uid,
+            courierName,
+            groupId,
+            groupSize,
+            pickupCode
+          });
+        }
       });
 
-      alert('Entrega aceita com sucesso!');
+      alert(`Entrega aceita com sucesso!${selectedGroup.length > 1 ? ` Grupo de ${selectedGroup.length} pedidos criado.` : ''}`);
       navigate('/courier/accepted');
     } catch (error) {
-      console.error("Erro ao aceitar entrega:", error);
+      console.error('Erro ao aceitar entrega:', error);
       alert(error.message);
-      if (error.message === "Esta entrega jÃ¡ foi aceita por outro entregador." || error.message === "Entrega nÃ£o encontrada.") {
+      if (
+        error.message === 'Esta entrega já foi aceita por outro entregador.' ||
+        error.message === 'Entrega não encontrada.' ||
+        error.message === 'Uma das entregas do grupo não foi encontrada.' ||
+        error.message === 'Uma das entregas do grupo já foi aceita por outro entregador.'
+      ) {
         navigate('/courier/home');
       } else {
         setLoading(false);
@@ -192,11 +272,22 @@ export default function DeliveryDetailsScreen() {
 
         {delivery.observation && (
           <div style={{ marginTop: '24px', padding: '16px', background: '#f8fafc', borderRadius: '12px', border: '1px solid var(--border)' }}>
-            <div style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-muted)', marginBottom: '4px' }}>ObservaÃ§Ãµes</div>
+            <div style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-muted)', marginBottom: '4px' }}>Observações</div>
             <div style={{ fontSize: '0.9rem', color: 'var(--secondary)' }}>{delivery.observation}</div>
           </div>
         )}
       </div>
+
+      {nearbyCount > 0 && (
+        <div className="card" style={{ padding: '18px', marginBottom: '24px', backgroundColor: '#f8fafc', border: '1px solid var(--border)' }}>
+          <p style={{ margin: 0, fontWeight: '700', color: 'var(--secondary)' }}>
+            Este pedido pode ser agrupado com mais {nearbyCount} pedido{nearbyCount > 1 ? 's' : ''} do mesmo estabelecimento.
+          </p>
+          <p style={{ marginTop: '8px', color: 'var(--text-muted)' }}>
+            O sistema aceitará até 3 pedidos juntos para facilitar a viagem do entregador.
+          </p>
+        </div>
+      )}
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
         <button 
@@ -219,4 +310,3 @@ export default function DeliveryDetailsScreen() {
     </div>
   );
 }
-

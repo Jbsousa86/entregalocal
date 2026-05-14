@@ -36,6 +36,7 @@ export default function DeliveryDetailsScreen() {
   const { deliveryId } = location.state || {};
   const [delivery, setDelivery] = useState(null);
   const [otherDeliveries, setOtherDeliveries] = useState([]);
+  const [baseGroupFee, setBaseGroupFee] = useState(0);
   const [loading, setLoading] = useState(true);
   const [showGroupChoice, setShowGroupChoice] = useState(false);
   const [selectedDeliveries, setSelectedDeliveries] = useState({});
@@ -83,6 +84,17 @@ export default function DeliveryDetailsScreen() {
           });
 
           setOtherDeliveries(others);
+
+          // Buscar taxa padrão definida pelo admin (ex: collection 'settings' doc 'platform')
+          try {
+            const settingsRef = doc(db, 'settings', 'platform');
+            const settingsSnap = await getDoc(settingsRef);
+            const fee = (settingsSnap.exists() && settingsSnap.data().groupFee) ? Number(settingsSnap.data().groupFee) : 0;
+            setBaseGroupFee(fee);
+          } catch (err) {
+            console.warn('Não foi possível obter taxa padrão do admin:', err);
+            setBaseGroupFee(0);
+          }
         } else {
           alert('Entrega não encontrada ou já removida.');
           navigate('/courier/home');
@@ -152,6 +164,9 @@ export default function DeliveryDetailsScreen() {
     await acceptDelivery([{ id: delivery.id, data: delivery }]);
   };
 
+  const selectedCount = Object.keys(selectedDeliveries).filter((k) => selectedDeliveries[k]).length;
+  const surchargePreview = Number(baseGroupFee || 0) + Math.max(0, selectedCount - 1) * 1;
+
   const acceptDelivery = async (deliveriesToAccept) => {
     if (!auth.currentUser) return;
     setLoading(true);
@@ -176,7 +191,6 @@ export default function DeliveryDetailsScreen() {
         const groupId = delivery.id;
         const pickupCode = delivery.pickupCode;
         const groupSize = deliveriesToAccept.length;
-
         const deliveryRefs = deliveriesToAccept.map((item) => doc(db, 'deliveries', item.id));
         const deliveryDocs = [];
 
@@ -184,6 +198,10 @@ export default function DeliveryDetailsScreen() {
           const deliveryDoc = await transaction.get(deliveryRef);
           deliveryDocs.push({ ref: deliveryRef, doc: deliveryDoc });
         }
+
+        // Calcular taxa: valor padrão do admin + R$1 por pedido adicional
+        const adminBase = Number(baseGroupFee || 0);
+        const surchargePerOrder = adminBase + Math.max(0, groupSize - 1) * 1;
 
         for (const { ref, doc: deliveryDoc } of deliveryDocs) {
           if (!deliveryDoc.exists()) {
@@ -199,14 +217,17 @@ export default function DeliveryDetailsScreen() {
           }
         }
 
-        for (const deliveryRef of deliveryRefs) {
-          transaction.update(deliveryRef, {
+        for (const { ref, doc: deliveryDoc } of deliveryDocs) {
+          const originalValue = Number(deliveryDoc.data().value || 0);
+          transaction.update(ref, {
             status: 'accepted',
             courierId: auth.currentUser.uid,
             courierName,
             groupId,
             groupSize,
-            pickupCode
+            pickupCode,
+            groupFee: surchargePerOrder,
+            chargedValue: originalValue + surchargePerOrder
           });
         }
       });
@@ -384,14 +405,17 @@ export default function DeliveryDetailsScreen() {
             </div>
 
             <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-              <button
-                onClick={handleConfirmSelection}
-                disabled={loading}
-                className="btn"
-                style={{ flex: 1, height: '50px' }}
-              >
-                {loading ? 'Processando...' : `Confirmar seleção (${Object.keys(selectedDeliveries).filter(k=>selectedDeliveries[k]).length}/3)`}
-              </button>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginBottom: '6px' }}>Taxa por pedido: R$ {surchargePreview.toFixed(2)}</div>
+                <button
+                  onClick={handleConfirmSelection}
+                  disabled={loading}
+                  className="btn"
+                  style={{ width: '100%', height: '50px' }}
+                >
+                  {loading ? 'Processando...' : `Confirmar seleção (${selectedCount}/3)`}
+                </button>
+              </div>
 
               <button
                 onClick={handleAcceptSolo}

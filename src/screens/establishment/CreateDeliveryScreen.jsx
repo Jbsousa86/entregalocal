@@ -7,10 +7,10 @@ import { auth, db } from '../../firebaseClient';
 export default function CreateDeliveryScreen() {
   const navigate = useNavigate();
   const [pickupAddress, setPickupAddress] = useState('');
-  const [deliveryAddress, setDeliveryAddress] = useState('');
+  const [destinations, setDestinations] = useState([{ address: '', observation: '' }]);
   const [establishmentName, setEstablishmentName] = useState('');
-  const [observation, setObservation] = useState('');
-  const [value, setValue] = useState('2.00');
+  const [baseFee, setBaseFee] = useState(2.00);
+  const totalValue = (baseFee + (destinations.length - 1)).toFixed(2);
   const [loading, setLoading] = useState(false);
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [isFixedFromProfile, setIsFixedFromProfile] = useState(false);
@@ -31,7 +31,7 @@ export default function CreateDeliveryScreen() {
             }
             setEstablishmentName(data.name || '');
             if (data.deliveryFee) {
-              setValue(data.deliveryFee.toString());
+              setBaseFee(parseFloat(data.deliveryFee));
             }
           }
         } catch (error) {
@@ -46,21 +46,25 @@ export default function CreateDeliveryScreen() {
   }, [navigate]);
 
   const handlePublish = async () => {
-    if (!pickupAddress || !deliveryAddress) {
-      alert('Preencha os endereços de entrega.');
+    if (!pickupAddress || destinations.some(d => !d.address)) {
+      alert('Preencha todos os endereços de entrega.');
       return;
     }
 
     setLoading(true);
     try {
       const pickupCode = Math.floor(1000 + Math.random() * 9000).toString();
+      
+      const finalAddress = destinations.map((d, i) => destinations.length > 1 ? `Pedido ${i + 1}: ${d.address}` : d.address).join(' • ');
+      const finalObservation = destinations.map((d, i) => d.observation ? (destinations.length > 1 ? `Pedido ${i + 1}: ${d.observation}` : d.observation) : '').filter(Boolean).join(' • ');
+
       await addDoc(collection(db, 'deliveries'), {
         establishmentId: auth.currentUser.uid,
         establishmentName,
         pickupAddress,
-        deliveryAddress,
-        observation,
-        value: parseFloat(value),
+        deliveryAddress: finalAddress,
+        observation: finalObservation,
+        value: parseFloat(totalValue),
         pickupCode,
         status: 'pending',
         createdAt: serverTimestamp(),
@@ -78,16 +82,22 @@ export default function CreateDeliveryScreen() {
     if (!pastedText) return;
 
     const addressMatch = pastedText.match(/(?:Endereço|Entrega|Local|Rua|Av):\s*(.*)|(Rua\s.*|Av\s.*|Pça\s.*)/i);
+    let newAddress = destinations[0].address;
     if (addressMatch) {
-      setDeliveryAddress(addressMatch[1] || addressMatch[2] || '');
+      newAddress = addressMatch[1] || addressMatch[2] || '';
     }
 
     const orderMatch = pastedText.match(/(?:Pedido|Itens|Produtos):\s*([\s\S]*?)(?:\n\n|Total:|$)/i);
+    let newObs = destinations[0].observation;
     if (orderMatch) {
-      setObservation(orderMatch[1].trim());
+      newObs = orderMatch[1].trim();
     } else if (pastedText.length > 0) {
-      setObservation(pastedText.substring(0, 200) + (pastedText.length > 200 ? '...' : ''));
+      newObs = pastedText.substring(0, 200) + (pastedText.length > 200 ? '...' : '');
     }
+    
+    const newDest = [...destinations];
+    newDest[0] = { address: newAddress, observation: newObs };
+    setDestinations(newDest);
 
     setShowPastedInput(false);
     setPastedText('');
@@ -130,7 +140,7 @@ export default function CreateDeliveryScreen() {
 
       <div className="card" style={{ padding: '24px' }}>
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '20px' }}>
-           <button 
+          <button 
             onClick={() => setShowPastedInput(!showPastedInput)}
             className="btn btn-outline"
             style={{ width: 'auto', padding: '10px 16px', fontSize: '0.85rem', gap: '6px' }}
@@ -140,7 +150,7 @@ export default function CreateDeliveryScreen() {
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/>
                 </svg>
-                Importar do WhatsApp
+                Importar 1º Pedido
               </>
             )}
           </button>
@@ -200,34 +210,74 @@ export default function CreateDeliveryScreen() {
           </div>
         </div>
 
-        <div className="form-group">
-          <label>Endereço de Entrega</label>
-          <div style={{ position: 'relative' }}>
-            <input 
-              type="text" 
-              placeholder="Para onde vamos entregar?" 
-              value={deliveryAddress} 
-              onChange={e => setDeliveryAddress(e.target.value)}
-              style={{ paddingLeft: '44px' }}
-            />
-            <div style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--accent)' }}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10"/><path d="m16 12-4-4-4 4m4 4v-8"/>
-              </svg>
+        {destinations.map((dest, index) => (
+          <div key={index} style={{ marginBottom: '24px', padding: '16px', backgroundColor: 'var(--surface-muted)', borderRadius: '12px', border: '1px solid var(--border)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+              <h4 style={{ margin: 0, fontSize: '1rem', color: 'var(--primary)' }}>
+                {index + 1}º Pedido / Destino
+              </h4>
+              {index > 0 && (
+                <button 
+                  onClick={() => {
+                    const newDest = [...destinations];
+                    newDest.splice(index, 1);
+                    setDestinations(newDest);
+                  }}
+                  style={{ background: 'none', border: 'none', color: 'var(--error)', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 'bold' }}
+                >
+                  Remover
+                </button>
+              )}
+            </div>
+
+            <div className="form-group" style={{ marginBottom: '12px' }}>
+              <label>Endereço de Entrega</label>
+              <div style={{ position: 'relative' }}>
+                <input 
+                  type="text" 
+                  placeholder="Para onde vamos entregar?" 
+                  value={dest.address} 
+                  onChange={e => {
+                    const newDest = [...destinations];
+                    newDest[index].address = e.target.value;
+                    setDestinations(newDest);
+                  }}
+                  style={{ paddingLeft: '44px' }}
+                />
+                <div style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--accent)' }}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10"/><path d="m16 12-4-4-4 4m4 4v-8"/>
+                  </svg>
+                </div>
+              </div>
+            </div>
+
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label>Observações / Itens</label>
+              <textarea 
+                placeholder="Ex: Entregar na portaria, troco para R$ 50..." 
+                value={dest.observation} 
+                onChange={e => {
+                  const newDest = [...destinations];
+                  newDest[index].observation = e.target.value;
+                  setDestinations(newDest);
+                }}
+                rows="2"
+                style={{ height: 'auto' }}
+              />
             </div>
           </div>
-        </div>
+        ))}
 
-        <div className="form-group">
-          <label>Observações / Itens</label>
-          <textarea 
-            placeholder="Ex: Entregar na portaria, troco para R$ 50..." 
-            value={observation} 
-            onChange={e => setObservation(e.target.value)}
-            rows="3"
-            style={{ height: 'auto' }}
-          />
-        </div>
+        {destinations.length < 3 && (
+          <button 
+            className="btn btn-outline" 
+            onClick={() => setDestinations([...destinations, { address: '', observation: '' }])}
+            style={{ width: '100%', marginBottom: '24px', borderStyle: 'dashed', borderWidth: '2px' }}
+          >
+            + Adicionar outro destino (R$ 1,00)
+          </button>
+        )}
 
         <div className="form-group" style={{ marginBottom: '32px' }}>
           <label>Taxa de Entrega</label>
@@ -241,11 +291,11 @@ export default function CreateDeliveryScreen() {
             border: '2px solid var(--border)'
           }}>
             <span style={{ fontSize: '1.25rem', fontWeight: '800', color: 'var(--secondary)' }}>
-              R$ {parseFloat(value).toFixed(2).replace('.', ',')}
+              R$ {totalValue.replace('.', ',')}
             </span>
           </div>
           <p style={{ fontSize: '0.75rem', marginTop: '8px', textAlign: 'center' }}>
-            Esta taxa é calculada com base no seu perfil.
+            A taxa base é do seu perfil. Cada destino extra adiciona R$ 1,00.
           </p>
         </div>
 

@@ -359,6 +359,74 @@ button:disabled {
   min-height: 52px;
 }
 
+.admin-dashboard,
+.admin-report {
+  width: 100%;
+  padding: 16px;
+}
+
+.admin-dashboard .card,
+.admin-report .card {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.admin-report table {
+  width: 100%;
+  min-width: 100%;
+  border-collapse: collapse;
+}
+
+.admin-report table th,
+.admin-report table td {
+  padding: 12px 10px;
+  white-space: normal;
+}
+
+@media (max-width: 900px) {
+  .admin-report table {
+    min-width: 650px;
+  }
+}
+
+@media (max-width: 640px) {
+  .admin-dashboard,
+  .admin-report {
+    padding: 12px;
+  }
+
+  .register-screen .card {
+    padding: 24px 20px;
+  }
+
+  .picture-upload {
+    margin-bottom: 24px;
+  }
+
+  .avatar-upload {
+    width: 92px;
+    height: 92px;
+  }
+
+  .register-screen h2 {
+    font-size: 1.6rem;
+  }
+
+  .admin-report table,
+  .admin-report table th,
+  .admin-report table td {
+    font-size: 13px;
+  }
+}
+
+@media (min-width: 768px) {
+  .admin-dashboard,
+  .admin-report {
+    padding: 24px;
+  }
+}
+
+
 .badge {
   display: inline-flex;
   align-items: center;

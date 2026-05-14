@@ -37,6 +37,8 @@ export default function DeliveryDetailsScreen() {
   const [delivery, setDelivery] = useState(null);
   const [nearbyCount, setNearbyCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [showGroupChoice, setShowGroupChoice] = useState(false);
+  const [groupCandidates, setGroupCandidates] = useState([]);
 
   useEffect(() => {
     if (!deliveryId) {
@@ -98,7 +100,6 @@ export default function DeliveryDetailsScreen() {
 
   const handleAccept = async () => {
     if (!auth.currentUser || !delivery) return;
-    setLoading(true);
 
     try {
       const pendingQuery = query(
@@ -108,22 +109,36 @@ export default function DeliveryDetailsScreen() {
       );
       const pendingSnapshot = await getDocs(pendingQuery);
 
-      const groupCandidates = [];
+      const candidates = [];
       pendingSnapshot.forEach((docItem) => {
         const data = docItem.data();
         if (docItem.id === delivery.id) return;
         if (!samePickupAddress(delivery.pickupAddress, data.pickupAddress)) return;
         if (!isNearbyAddress(delivery.deliveryAddress, data.deliveryAddress)) return;
-        // Garantir que é do mesmo estabelecimento
         if (data.establishmentId !== delivery.establishmentId) return;
-        groupCandidates.push({ id: docItem.id, data });
+        candidates.push({ id: docItem.id, data });
       });
 
-      const selectedGroup = [
-        { id: delivery.id, data: delivery },
-        ...groupCandidates.slice(0, 2)
-      ];
+      // Se houver candidatos, mostrar diálogo de escolha
+      if (candidates.length > 0) {
+        setGroupCandidates(candidates);
+        setShowGroupChoice(true);
+        return;
+      }
 
+      // Caso contrário, aceitar sem agrupar
+      await acceptDelivery([{ id: delivery.id, data: delivery }]);
+    } catch (error) {
+      console.error('Erro ao buscar candidatos de agrupamento:', error);
+      alert('Erro ao processar entrega. Tente novamente.');
+    }
+  };
+
+  const acceptDelivery = async (deliveriesToAccept) => {
+    if (!auth.currentUser) return;
+    setLoading(true);
+
+    try {
       const activeQuery = query(
         collection(db, 'deliveries'),
         where('courierId', '==', auth.currentUser.uid),
@@ -142,9 +157,9 @@ export default function DeliveryDetailsScreen() {
 
         const groupId = delivery.id;
         const pickupCode = delivery.pickupCode;
-        const groupSize = selectedGroup.length;
+        const groupSize = deliveriesToAccept.length;
 
-        const deliveryRefs = selectedGroup.map((item) => doc(db, 'deliveries', item.id));
+        const deliveryRefs = deliveriesToAccept.map((item) => doc(db, 'deliveries', item.id));
         const deliveryDocs = [];
 
         for (const deliveryRef of deliveryRefs) {
@@ -161,7 +176,6 @@ export default function DeliveryDetailsScreen() {
             throw new Error('Uma das entregas do grupo já foi aceita por outro entregador.');
           }
 
-          // Garantir que todas as entregas são do mesmo estabelecimento
           if (deliveryDoc.data().establishmentId !== delivery.establishmentId) {
             throw new Error('Todas as entregas do grupo devem ser do mesmo estabelecimento.');
           }
@@ -179,7 +193,7 @@ export default function DeliveryDetailsScreen() {
         }
       });
 
-      alert(`Entrega aceita com sucesso!${selectedGroup.length > 1 ? ` Grupo de ${selectedGroup.length} pedidos criado.` : ''}`);
+      alert(`Entrega aceita com sucesso!${deliveriesToAccept.length > 1 ? ` Grupo de ${deliveriesToAccept.length} pedidos criado.` : ''}`);
       navigate('/courier/accepted');
     } catch (error) {
       console.error('Erro ao aceitar entrega:', error);
@@ -195,6 +209,20 @@ export default function DeliveryDetailsScreen() {
         setLoading(false);
       }
     }
+  };
+
+  const handleAcceptSolo = async () => {
+    setShowGroupChoice(false);
+    await acceptDelivery([{ id: delivery.id, data: delivery }]);
+  };
+
+  const handleAcceptGrouped = async () => {
+    setShowGroupChoice(false);
+    const selectedGroup = [
+      { id: delivery.id, data: delivery },
+      ...groupCandidates.slice(0, 2)
+    ];
+    await acceptDelivery(selectedGroup);
   };
 
   if (loading) return (
@@ -302,6 +330,83 @@ export default function DeliveryDetailsScreen() {
           </p>
         </div>
       )}
+
+      {showGroupChoice && (
+        <div style={{ 
+          position: 'fixed', 
+          top: 0, 
+          left: 0, 
+          right: 0, 
+          bottom: 0, 
+          background: 'rgba(0, 0, 0, 0.5)', 
+          display: 'flex', 
+          alignItems: 'flex-end', 
+          zIndex: 1000
+        }}>
+          <div style={{ 
+            width: '100%', 
+            background: 'white', 
+            borderRadius: '20px 20px 0 0', 
+            padding: '24px',
+            animation: 'slideUp 0.3s ease'
+          }}>
+            <h3 style={{ fontSize: '1.1rem', fontWeight: '800', marginBottom: '12px', marginTop: 0 }}>
+              Deseja agrupar os pedidos?
+            </h3>
+            <p style={{ color: 'var(--text-muted)', marginBottom: '24px', margin: '12px 0 24px 0' }}>
+              Você pode aceitar este pedido sozinho ou agrupá-lo com {groupCandidates.length} pedido{groupCandidates.length > 1 ? 's' : ''} compatível{groupCandidates.length > 1 ? 's' : ''}.
+            </p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <button
+                onClick={handleAcceptGrouped}
+                disabled={loading}
+                className="btn"
+                style={{ height: '50px' }}
+              >
+                {loading ? 'Processando...' : `Agrupar ${1 + groupCandidates.length} Pedido${1 + groupCandidates.length > 1 ? 's' : ''}`}
+              </button>
+              
+              <button
+                onClick={handleAcceptSolo}
+                disabled={loading}
+                className="btn btn-secondary"
+                style={{ height: '50px' }}
+              >
+                Aceitar Apenas Este
+              </button>
+
+              <button
+                onClick={() => setShowGroupChoice(false)}
+                disabled={loading}
+                style={{
+                  height: '50px',
+                  background: 'transparent',
+                  border: '1px solid var(--border)',
+                  borderRadius: '12px',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                  color: 'var(--secondary)',
+                  fontSize: '1rem'
+                }}
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <style>{`
+        @keyframes slideUp {
+          from {
+            transform: translateY(100%);
+          }
+          to {
+            transform: translateY(0);
+          }
+        }
+      `}</style>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
         <button 

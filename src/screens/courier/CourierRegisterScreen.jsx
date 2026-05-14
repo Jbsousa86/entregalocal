@@ -87,53 +87,31 @@ export default function CourierRegisterScreen({ onRegister, onBack }) {
   };
 
   return (
-    <div className="courier-register-screen fade-in" style={{ padding: '20px 0' }}>
-      <div className="card" style={{ padding: '32px 24px' }}>
-        <header style={{ textAlign: 'center', marginBottom: '32px' }}>
-          <h2 style={{ fontSize: '1.75rem', fontWeight: '800', color: 'var(--secondary)' }}>Dados de Cadastro</h2>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Torne-se um entregador parceiro agora mesmo.</p>
+    <div className="register-screen courier-register-screen fade-in">
+      <div className="card">
+        <header className="card-header">
+          <h2>Dados de Cadastro</h2>
+          <p>Torne-se um entregador parceiro agora mesmo.</p>
         </header>
 
         {error && (
-          <div style={{ 
-            backgroundColor: '#fef2f2', 
-            color: 'var(--error)', 
-            padding: '12px 16px', 
-            borderRadius: '12px', 
-            fontSize: '0.85rem', 
-            fontWeight: '600', 
-            marginBottom: '24px',
-            border: '1px solid #fee2e2'
-          }}>
+          <div className="error-message">
             ⚠️ {error}
           </div>
         )}
 
-        <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-          <div style={{
-            width: '100px',
-            height: '100px',
-            borderRadius: '30px',
-            backgroundColor: 'var(--background)',
-            margin: '0 auto 12px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            overflow: 'hidden',
-            border: '2px dashed var(--primary)',
-            position: 'relative',
-            cursor: 'pointer',
-            transition: 'all 0.3s ease'
-          }} onClick={() => document.getElementById('fileInput').click()}>
+        <div className="picture-upload">
+          <button type="button" className="avatar-upload" onClick={() => document.getElementById('fileInput').click()}>
             {imagePreview ? (
-              <img src={imagePreview} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              <img src={imagePreview} alt="Preview" />
             ) : (
-              <div style={{ textAlign: 'center' }}>
-                <span style={{ fontSize: '32px', display: 'block' }}>📸</span>
-                <span style={{ fontSize: '10px', fontWeight: '800', color: 'var(--primary)', textTransform: 'uppercase' }}>Foto</span>
+              <div className="avatar-placeholder">
+                <span>📸</span>
+                <strong>Upload</strong>
               </div>
             )}
-          </div>
+          </button>
+          <p className="avatar-caption">Foto do perfil (opcional)</p>
           <input
             id="fileInput"
             type="file"
@@ -143,53 +121,43 @@ export default function CourierRegisterScreen({ onRegister, onBack }) {
           />
         </div>
 
-        <div className="form-group">
-          <label>Email Profissional</label>
-          <input type="email" placeholder="exemplo@email.com" value={email} onChange={e => setEmail(e.target.value)} />
-        </div>
+        <div className="form-grid">
+          <div className="form-group">
+            <label>Email Profissional</label>
+            <input type="email" placeholder="exemplo@email.com" value={email} onChange={e => setEmail(e.target.value)} />
+          </div>
 
-        <div className="form-group">
-          <label>Senha de Acesso</label>
-          <input type="password" placeholder="Mínimo 6 caracteres" value={password} onChange={e => setPassword(e.target.value)} />
-        </div>
+          <div className="form-group">
+            <label>Senha de Acesso</label>
+            <input type="password" placeholder="Mínimo 6 caracteres" value={password} onChange={e => setPassword(e.target.value)} />
+          </div>
 
-        <div className="form-group">
-          <label>Nome Completo</label>
-          <input type="text" placeholder="Como quer ser chamado?" value={name} onChange={e => setName(e.target.value)} />
-        </div>
+          <div className="form-group">
+            <label>Nome Completo</label>
+            <input type="text" placeholder="Como quer ser chamado?" value={name} onChange={e => setName(e.target.value)} />
+          </div>
 
-        <div className="form-group">
-          <label>Telefone / WhatsApp</label>
-          <input type="text" placeholder="(00) 00000-0000" value={phone} onChange={e => setPhone(e.target.value)} />
-        </div>
+          <div className="form-group">
+            <label>Telefone / WhatsApp</label>
+            <input type="text" placeholder="(00) 00000-0000" value={phone} onChange={e => setPhone(e.target.value)} />
+          </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
           <div className="form-group">
             <label>Veículo</label>
             <input type="text" placeholder="Ex: Moto, Bike" value={vehicle} onChange={e => setVehicle(e.target.value)} />
           </div>
+
           <div className="form-group">
             <label>Cidade/Área</label>
             <input type="text" placeholder="Ex: Centro" value={area} onChange={e => setArea(e.target.value)} />
           </div>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '24px' }}>
-          <button 
-            onClick={handleRegister} 
-            disabled={loading} 
-            className="btn"
-            style={{ height: '55px', fontSize: '1rem' }}
-          >
+        <div className="form-actions">
+          <button onClick={handleRegister} disabled={loading} className="btn">
             {loading ? 'Processando Cadastro...' : 'Finalizar Cadastro'}
           </button>
-          
-          <button 
-            onClick={onBack} 
-            disabled={loading} 
-            className="btn btn-secondary"
-            style={{ height: '50px' }}
-          >
+          <button onClick={onBack} disabled={loading} className="btn btn-secondary">
             Voltar para Login
           </button>
         </div>

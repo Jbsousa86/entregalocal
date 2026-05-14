@@ -89,50 +89,79 @@ export default function EstablishmentRegisterScreen({ onRegister, onBack }) {
   };
 
   return (
-    <div className="establishment-register-screen card fade-in">
-      <h2 className="text-center mb-6">Cadastro</h2>
-      {error && <div className="error-message">{error}</div>}
+    <div className="register-screen establishment-register-screen fade-in">
+      <div className="card">
+        <header className="card-header">
+          <h2>Cadastro</h2>
+          <p>Cadastre seu estabelecimento e comece a receber pedidos.</p>
+        </header>
 
-      <div className="text-center mb-6">
-        <div style={{
-          width: '100px',
-          height: '100px',
-          borderRadius: '50%',
-          backgroundColor: 'var(--background)',
-          margin: '0 auto 12px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          overflow: 'hidden',
-          border: '2px solid var(--border)',
-          position: 'relative',
-          cursor: 'pointer'
-        }} onClick={() => document.getElementById('fileInput').click()}>
-          {imagePreview ? (
-            <img src={imagePreview} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-          ) : (
-            <span style={{ fontSize: '32px' }}>📷</span>
-          )}
+        {error && <div className="error-message">{error}</div>}
+
+        <div className="picture-upload">
+          <button type="button" className="avatar-upload" onClick={() => document.getElementById('fileInput').click()}>
+            {imagePreview ? (
+              <img src={imagePreview} alt="Preview" />
+            ) : (
+              <span className="avatar-placeholder">📷</span>
+            )}
+          </button>
+          <p className="avatar-caption">Foto do estabelecimento</p>
+          <input
+            id="fileInput"
+            type="file"
+            accept="image/*"
+            onChange={handleImageChange}
+            style={{ display: 'none' }}
+          />
         </div>
-        <p style={{ fontSize: '14px', color: 'var(--text-muted)' }}>Foto do Estabelecimento</p>
-        <input
-          id="fileInput"
-          type="file"
-          accept="image/*"
-          onChange={handleImageChange}
-          style={{ display: 'none' }}
-        />
-      </div>
 
-      <input type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} />
-      <input type="password" placeholder="Senha" value={password} onChange={e => setPassword(e.target.value)} />
-      <input type="text" placeholder="Nome do estabelecimento" value={name} onChange={e => setName(e.target.value)} />
-      <input type="text" placeholder="Tipo (lanchonete, mercado...)" value={type} onChange={e => setType(e.target.value)} />
-      <input type="text" placeholder="Endereço" value={address} onChange={e => setAddress(e.target.value)} />
-      <input type="text" placeholder="Telefone" value={phone} onChange={e => setPhone(e.target.value)} />
-      <input type="text" placeholder="Horário de funcionamento" value={hours} onChange={e => setHours(e.target.value)} />
-      <button onClick={handleRegister} disabled={loading} className="mb-4">{loading ? 'Cadastrando...' : 'Finalizar Cadastro'}</button>
-      <button onClick={onBack} disabled={loading} style={{ backgroundColor: 'var(--text-muted)' }}>Voltar</button>
+        <div className="form-grid">
+          <div className="form-group">
+            <label>Email</label>
+            <input type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} />
+          </div>
+
+          <div className="form-group">
+            <label>Senha</label>
+            <input type="password" placeholder="Senha" value={password} onChange={e => setPassword(e.target.value)} />
+          </div>
+
+          <div className="form-group">
+            <label>Nome do estabelecimento</label>
+            <input type="text" placeholder="Nome do estabelecimento" value={name} onChange={e => setName(e.target.value)} />
+          </div>
+
+          <div className="form-group">
+            <label>Tipo</label>
+            <input type="text" placeholder="Tipo (lanchonete, mercado...)" value={type} onChange={e => setType(e.target.value)} />
+          </div>
+
+          <div className="form-group">
+            <label>Endereço</label>
+            <input type="text" placeholder="Endereço" value={address} onChange={e => setAddress(e.target.value)} />
+          </div>
+
+          <div className="form-group">
+            <label>Telefone</label>
+            <input type="text" placeholder="Telefone" value={phone} onChange={e => setPhone(e.target.value)} />
+          </div>
+
+          <div className="form-group">
+            <label>Horário de funcionamento</label>
+            <input type="text" placeholder="Horário de funcionamento" value={hours} onChange={e => setHours(e.target.value)} />
+          </div>
+        </div>
+
+        <div className="form-actions">
+          <button onClick={handleRegister} disabled={loading} className="btn">
+            {loading ? 'Cadastrando...' : 'Finalizar Cadastro'}
+          </button>
+          <button onClick={onBack} disabled={loading} className="btn btn-secondary">
+            Voltar
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

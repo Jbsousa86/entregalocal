@@ -131,6 +131,50 @@ input::placeholder {
   color: #94a3b8;
 }
 
+.text-center {
+  text-align: center;
+}
+
+.text-muted {
+  color: var(--text-muted);
+}
+
+.mb-1 { margin-bottom: 0.25rem; }
+.mb-2 { margin-bottom: 0.5rem; }
+.mb-3 { margin-bottom: 0.75rem; }
+.mb-4 { margin-bottom: 1rem; }
+.mb-5 { margin-bottom: 1.25rem; }
+.mb-6 { margin-bottom: 1.5rem; }
+
+.p-8 { padding: 2rem; }
+.p-10 { padding: 2.5rem; }
+
+button {
+  font-family: inherit;
+  font-size: 1rem;
+  padding: 14px 18px;
+  border-radius: var(--radius);
+  border: none;
+  background-color: var(--primary);
+  color: var(--text-on-primary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: var(--shadow-sm);
+}
+
+button:hover {
+  background-color: var(--primary-hover);
+  transform: translateY(-1px);
+}
+
+button:disabled {
+  background-color: var(--text-muted);
+  cursor: not-allowed;
+  opacity: 0.65;
+  transform: none;
+  box-shadow: none;
+}
+
 /* Buttons */
 .btn {
   display: inline-flex;
@@ -204,6 +248,115 @@ input::placeholder {
 .card-header {
   margin-bottom: 24px;
   text-align: center;
+}
+
+.register-screen {
+  min-height: calc(100vh - 40px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+}
+
+.register-screen .card {
+  max-width: 540px;
+  padding: 36px 30px;
+}
+
+.register-screen h2 {
+  font-size: 1.9rem;
+  letter-spacing: 0.02em;
+  margin-bottom: 8px;
+}
+
+.register-screen p {
+  color: var(--text-muted);
+  font-size: 0.95rem;
+}
+
+.picture-upload {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 32px;
+}
+
+.avatar-upload {
+  width: 108px;
+  height: 108px;
+  border-radius: 28px;
+  background-color: var(--surface-muted);
+  border: 2px dashed var(--primary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.avatar-upload:hover {
+  border-color: var(--primary-hover);
+  transform: translateY(-2px);
+}
+
+.avatar-upload img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatar-placeholder {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--primary);
+  font-size: 1.25rem;
+}
+
+.avatar-placeholder strong {
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.avatar-caption {
+  margin-top: 12px;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.form-grid {
+  display: grid;
+  gap: 18px;
+}
+
+@media (min-width: 640px) {
+  .courier-register-screen .form-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .courier-register-screen .form-group:nth-last-child(-n+2) {
+    grid-column: span 1;
+  }
+}
+
+@media (max-width: 640px) {
+  .register-screen .card {
+    padding: 28px 20px;
+  }
+}
+
+.form-actions {
+  display: grid;
+  gap: 14px;
+  margin-top: 24px;
+}
+
+.form-actions .btn {
+  min-height: 52px;
 }
 
 .badge {

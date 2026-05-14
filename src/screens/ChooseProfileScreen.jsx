@@ -5,10 +5,10 @@ export default function ChooseProfileScreen({ onChoose }) {
     <div className="choose-profile-screen card fade-in">
       <h2 className="text-center mb-6">Como deseja entrar?</h2>
       <p className="text-center mb-6">Selecione o tipo de perfil para continuar o cadastro</p>
-      <button onClick={() => onChoose('establishment')} className="mb-4">
+      <button onClick={() => onChoose('establishment')} className="btn mb-4">
         Sou Estabelecimento
       </button>
-      <button onClick={() => onChoose('courier')}>
+      <button onClick={() => onChoose('courier')} className="btn btn-secondary">
         Sou Entregador
       </button>
     </div>

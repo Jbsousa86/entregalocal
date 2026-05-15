@@ -432,8 +432,8 @@ export default function AdminDashboardScreen() {
             </div>
 
             {/* Carteira da Plataforma */}
-            <div className="card" style={{ padding: '24px', marginBottom: '30px', background: 'linear-gradient(135deg, var(--secondary) 0%, var(--secondary-light) 100%)', color: 'white' }}>
-                <h3 style={{ fontSize: '1.2rem', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div className="card" style={{ padding: '24px', marginBottom: '30px', background: 'var(--secondary)', color: 'white', border: 'none' }}>
+                <h3 style={{ fontSize: '1.2rem', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px', color: 'white' }}>
                     💼 Carteira da Plataforma ({filter === 'all' ? 'Sempre' : filter === 'today' ? 'Hoje' : filter === 'week' ? 'Esta Semana' : 'Este Mês'})
                 </h3>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px' }}>

@@ -20,6 +20,7 @@ export default function AdminDashboardScreen() {
     const [couriersData, setCouriersData] = useState({});
     const [filter, setFilter] = useState('today');
     const [loading, setLoading] = useState(true);
+    const [selectedWithdrawal, setSelectedWithdrawal] = useState(null);
     const navigate = useNavigate();
 
     const calculateStats = (deliveries, currentFilter) => {
@@ -231,10 +232,17 @@ export default function AdminDashboardScreen() {
             });
             setWithdrawals(prev => prev.map(w => w.id === id ? { ...w, status: newStatus } : w));
             alert(`Saque marcado como ${newStatus === 'completed' ? 'concluído' : 'rejeitado'}!`);
+            if (selectedWithdrawal && selectedWithdrawal.id === id) {
+                setSelectedWithdrawal(null);
+            }
         } catch (error) {
             console.error("Erro ao atualizar saque:", error);
             alert("Erro ao atualizar status do saque.");
         }
+    };
+
+    const handlePrintCourierReport = () => {
+        window.print();
     };
 
     if (loading) return <div className="p-8 text-center">Carregando dados globais...</div>;
@@ -426,22 +434,12 @@ export default function AdminDashboardScreen() {
                                             </span>
                                         </td>
                                         <td style={{ padding: '10px' }}>
-                                            {w.status === 'pending' && (
-                                                <div style={{ display: 'flex', gap: '8px' }}>
-                                                    <button 
-                                                        onClick={() => handleUpdateWithdrawalStatus(w.id, 'completed')}
-                                                        style={{ background: 'var(--success)', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '8px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}
-                                                    >
-                                                        Aprovar (Pago)
-                                                    </button>
-                                                    <button 
-                                                        onClick={() => handleUpdateWithdrawalStatus(w.id, 'rejected')}
-                                                        style={{ background: 'var(--error)', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '8px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}
-                                                    >
-                                                        Rejeitar
-                                                    </button>
-                                                </div>
-                                            )}
+                                            <button 
+                                                onClick={() => setSelectedWithdrawal(w)}
+                                                style={{ background: 'var(--primary)', color: 'white', border: 'none', padding: '6px 16px', borderRadius: '8px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}
+                                            >
+                                                Analisar
+                                            </button>
                                         </td>
                                     </tr>
                                 );
@@ -505,6 +503,139 @@ export default function AdminDashboardScreen() {
                     </table>
                 </div>
             </div>
+
+            {/* Modal de Análise de Saque */}
+            {selectedWithdrawal && (() => {
+                const courierId = selectedWithdrawal.courierId;
+                const courierName = couriersData[courierId]?.name || 'Entregador Desconhecido';
+                
+                const courierDeliveries = allDeliveries.filter(d => d.courierId === courierId && d.status === 'delivered');
+                // Sort newest first
+                courierDeliveries.sort((a, b) => {
+                    const da = (a.completedAt || a.createdAt)?.seconds || 0;
+                    const db = (b.completedAt || b.createdAt)?.seconds || 0;
+                    return db - da;
+                });
+
+                const courierWithdrawals = withdrawals.filter(w => w.courierId === courierId);
+                
+                const totalEarnings = courierDeliveries.reduce((sum, d) => sum + parseFloat(d.value || 0), 0);
+                const totalWithdrawn = courierWithdrawals.filter(w => w.status === 'completed').reduce((sum, w) => sum + parseFloat(w.amount || 0), 0);
+                const totalPending = courierWithdrawals.filter(w => w.status === 'pending').reduce((sum, w) => sum + parseFloat(w.amount || 0), 0);
+                const available = totalEarnings - totalWithdrawn - totalPending;
+
+                return (
+                    <div style={{
+                        position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                        backgroundColor: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        zIndex: 9999, padding: '20px'
+                    }}>
+                        <div className="card fade-in" style={{ width: '100%', maxWidth: '800px', maxHeight: '90vh', overflowY: 'auto', padding: '30px', position: 'relative' }}>
+                            <button onClick={() => setSelectedWithdrawal(null)} style={{ position: 'absolute', top: '20px', right: '20px', background: 'transparent', border: 'none', fontSize: '24px', cursor: 'pointer', color: 'var(--text-muted)' }}>&times;</button>
+                            
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid var(--border)', paddingBottom: '16px', marginBottom: '24px' }}>
+                                <h2 style={{ margin: 0, fontSize: '1.5rem', color: 'var(--secondary)' }}>Análise de Saque</h2>
+                                <button onClick={handlePrintCourierReport} style={{ background: 'var(--primary)', color: 'white', padding: '8px 16px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>🖨️ Imprimir Relatório</button>
+                            </div>
+
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '24px' }}>
+                                <div style={{ background: 'var(--surface-muted)', padding: '20px', borderRadius: '16px' }}>
+                                    <h3 style={{ fontSize: '1rem', color: 'var(--text-muted)', marginBottom: '16px' }}>👤 Dados do Entregador</h3>
+                                    <div style={{ fontSize: '1.2rem', fontWeight: 'bold', marginBottom: '8px' }}>{courierName}</div>
+                                    <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>ID: {courierId.slice(-6).toUpperCase()}</div>
+                                </div>
+                                <div style={{ background: 'var(--primary-light)', padding: '20px', borderRadius: '16px', border: '2px dashed var(--primary)' }}>
+                                    <h3 style={{ fontSize: '1rem', color: 'var(--primary-dark)', marginBottom: '16px' }}>💰 Solicitação Atual</h3>
+                                    <div style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--primary)', marginBottom: '8px' }}>R$ {parseFloat(selectedWithdrawal.amount).toFixed(2).replace('.', ',')}</div>
+                                    <div style={{ fontSize: '0.9rem', fontWeight: 'bold', color: 'var(--secondary)' }}>Chave PIX: {selectedWithdrawal.bankAccount}</div>
+                                </div>
+                            </div>
+
+                            <h3 style={{ fontSize: '1.1rem', marginBottom: '16px', color: 'var(--secondary)' }}>📊 Resumo da Carteira</h3>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '32px' }}>
+                                <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', textAlign: 'center', border: '1px solid var(--border)' }}>
+                                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 'bold', textTransform: 'uppercase' }}>Total de Ganhos</div>
+                                    <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: 'var(--secondary)' }}>R$ {totalEarnings.toFixed(2)}</div>
+                                </div>
+                                <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', textAlign: 'center', border: '1px solid var(--border)' }}>
+                                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 'bold', textTransform: 'uppercase' }}>Já Sacado</div>
+                                    <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: 'var(--secondary)' }}>R$ {totalWithdrawn.toFixed(2)}</div>
+                                </div>
+                                <div style={{ background: '#fff3cd', padding: '16px', borderRadius: '12px', textAlign: 'center', border: '1px solid #ffeeba' }}>
+                                    <div style={{ fontSize: '0.75rem', color: '#856404', fontWeight: 'bold', textTransform: 'uppercase' }}>Bloqueado (Pendente)</div>
+                                    <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#856404' }}>R$ {totalPending.toFixed(2)}</div>
+                                </div>
+                                <div style={{ background: '#d4edda', padding: '16px', borderRadius: '12px', textAlign: 'center', border: '1px solid #c3e6cb' }}>
+                                    <div style={{ fontSize: '0.75rem', color: '#155724', fontWeight: 'bold', textTransform: 'uppercase' }}>Disponível</div>
+                                    <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#155724' }}>R$ {available.toFixed(2)}</div>
+                                </div>
+                            </div>
+
+                            <h3 style={{ fontSize: '1.1rem', marginBottom: '16px', color: 'var(--secondary)' }}>📋 Histórico Simplificado (Últimas Entregas)</h3>
+                            <div style={{ maxHeight: '200px', overflowY: 'auto', marginBottom: '24px', border: '1px solid var(--border)', borderRadius: '12px' }}>
+                                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                    <thead style={{ position: 'sticky', top: 0, background: 'var(--surface-muted)' }}>
+                                        <tr>
+                                            <th style={{ padding: '10px', textAlign: 'left', fontSize: '0.85rem' }}>Data</th>
+                                            <th style={{ padding: '10px', textAlign: 'left', fontSize: '0.85rem' }}>Estabelecimento</th>
+                                            <th style={{ padding: '10px', textAlign: 'right', fontSize: '0.85rem' }}>Valor Ganho</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {courierDeliveries.length === 0 ? (
+                                            <tr><td colSpan="3" style={{ padding: '16px', textAlign: 'center', color: 'var(--text-muted)' }}>Nenhuma entrega encontrada.</td></tr>
+                                        ) : (
+                                            courierDeliveries.slice(0, 50).map((d, i) => {
+                                                const ds = d.completedAt || d.createdAt;
+                                                const date = ds?.toDate ? ds.toDate() : (ds?.seconds ? new Date(ds.seconds * 1000) : new Date(0));
+                                                return (
+                                                    <tr key={i} style={{ borderBottom: '1px solid var(--border)' }}>
+                                                        <td style={{ padding: '10px', fontSize: '0.85rem' }}>{date.toLocaleDateString('pt-BR')} {date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</td>
+                                                        <td style={{ padding: '10px', fontSize: '0.85rem', fontWeight: 'bold' }}>{d.establishmentName}</td>
+                                                        <td style={{ padding: '10px', fontSize: '0.85rem', textAlign: 'right', color: 'var(--primary)', fontWeight: 'bold' }}>R$ {parseFloat(d.value || 0).toFixed(2)}</td>
+                                                    </tr>
+                                                );
+                                            })
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            {selectedWithdrawal.status === 'pending' && (
+                                <div style={{ display: 'flex', gap: '16px', marginTop: '24px', borderTop: '2px solid var(--border)', paddingTop: '24px' }}>
+                                    <button 
+                                        onClick={() => handleUpdateWithdrawalStatus(selectedWithdrawal.id, 'completed')}
+                                        style={{ flex: 1, background: 'var(--success)', color: 'white', border: 'none', padding: '16px', borderRadius: '12px', cursor: 'pointer', fontSize: '1.1rem', fontWeight: 'bold', boxShadow: 'var(--shadow)' }}
+                                    >
+                                        ✅ Aprovar (Já Transferi)
+                                    </button>
+                                    <button 
+                                        onClick={() => handleUpdateWithdrawalStatus(selectedWithdrawal.id, 'rejected')}
+                                        style={{ flex: 1, background: 'var(--error)', color: 'white', border: 'none', padding: '16px', borderRadius: '12px', cursor: 'pointer', fontSize: '1.1rem', fontWeight: 'bold', boxShadow: 'var(--shadow)' }}
+                                    >
+                                        ❌ Rejeitar Solicitação
+                                    </button>
+                                </div>
+                            )}
+                            
+                            {selectedWithdrawal.status !== 'pending' && (
+                                <div style={{ textAlign: 'center', padding: '20px', background: 'var(--surface-muted)', borderRadius: '12px', fontWeight: 'bold', color: 'var(--text-muted)' }}>
+                                    Esta solicitação já foi {selectedWithdrawal.status === 'completed' ? 'concluída' : 'rejeitada'}.
+                                </div>
+                            )}
+                        </div>
+                        
+                        <style>{`
+                            @media print {
+                                body * { visibility: hidden; }
+                                .card * { visibility: visible; }
+                                .card { position: absolute; left: 0; top: 0; width: 100%; box-shadow: none; border: none; padding: 0; }
+                                button { display: none !important; }
+                            }
+                        `}</style>
+                    </div>
+                );
+            })()}
 
         </div>
     );

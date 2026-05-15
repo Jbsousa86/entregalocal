@@ -195,7 +195,9 @@ export default function AcceptedDeliveryScreen() {
           {groupedDeliveries.map((item) => (
             <div key={item.id} style={{ marginBottom: '12px', paddingBottom: '12px', borderBottom: '1px solid rgba(0,0,0,0.05)' }}>
               <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '4px' }}>Destino</div>
+              {item.customerName && <div style={{ fontWeight: '700', fontSize: '0.9rem' }}>{item.customerName}</div>}
               <div style={{ fontWeight: '600' }}>{item.deliveryAddress}</div>
+              {item.observation && <div style={{ marginTop: '4px', fontSize: '0.85rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>Obs: {item.observation}</div>}
               <div style={{ marginTop: '6px', fontSize: '0.85rem', color: 'var(--secondary)' }}>R$ {Number(item.value).toFixed(2).replace('.', ',')}</div>
             </div>
           ))}
@@ -219,7 +221,9 @@ export default function AcceptedDeliveryScreen() {
           </div>
           <div>
             <div style={{ fontSize: '0.7rem', fontWeight: '800', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Entrega</div>
+            {activeDelivery.customerName && <div style={{ fontWeight: '700', fontSize: '0.9rem' }}>{activeDelivery.customerName}</div>}
             <div style={{ fontWeight: '600', fontSize: '0.95rem' }}>{activeDelivery.deliveryAddress}</div>
+            {activeDelivery.observation && <div style={{ marginTop: '4px', fontSize: '0.85rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>Obs: {activeDelivery.observation}</div>}
           </div>
         </div>
       </div>

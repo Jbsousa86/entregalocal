@@ -270,6 +270,7 @@ export default function CourierHistoryScreen() {
                   </div>
                   <div>
                     <div style={{ fontSize: '0.85rem', fontWeight: '700' }}>{item.establishmentName || 'Estabelecimento'}</div>
+                    {item.customerName && <div style={{ fontSize: '0.8rem', fontWeight: '600' }}>Para: {item.customerName}</div>}
                     <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{item.formattedDate}</div>
                   </div>
                 </div>

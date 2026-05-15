@@ -18,6 +18,7 @@ export default function CreateDeliveryScreen() {
   const [isFixedFromProfile, setIsFixedFromProfile] = useState(false);
   const [pastedText, setPastedText] = useState('');
   const [showPastedInput, setShowPastedInput] = useState(false);
+  const [observation, setObservation] = useState('');
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -67,6 +68,7 @@ export default function CreateDeliveryScreen() {
         street,
         neighborhood,
         reference,
+        observation,
         value: parseFloat(value),
         pickupCode,
         status: 'pending',
@@ -271,22 +273,22 @@ export default function CreateDeliveryScreen() {
         </div>
 
         <div className="form-group" style={{ marginBottom: '32px' }}>
-          <label>Taxa de Entrega</label>
-          <div style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: 'center',
-            background: 'var(--surface-muted)',
-            padding: '20px',
-            borderRadius: '16px',
-            border: '2px solid var(--border)'
-          }}>
-            <span style={{ fontSize: '1.25rem', fontWeight: '800', color: 'var(--secondary)' }}>
-              R$ {parseFloat(value).toFixed(2).replace('.', ',')}
-            </span>
-          </div>
+          <label>Taxa de Entrega (R$)</label>
+          <input 
+            type="number" 
+            step="0.01"
+            placeholder="Ex: 5.00" 
+            value={value} 
+            onChange={e => setValue(e.target.value)}
+            style={{ 
+              fontSize: '1.25rem', 
+              fontWeight: '800', 
+              color: 'var(--secondary)',
+              textAlign: 'center'
+            }}
+          />
           <p style={{ fontSize: '0.75rem', marginTop: '8px', textAlign: 'center' }}>
-            Esta taxa é calculada com base no seu perfil.
+            Valor sugerido pelo seu perfil. Você pode alterar se necessário.
           </p>
         </div>
 

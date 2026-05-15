@@ -280,8 +280,11 @@ export default function DeliveryHistoryScreen() {
                       <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
                     </svg>
                   </div>
-                  <div style={{ fontSize: '0.9rem', color: 'var(--secondary)', fontWeight: '500', lineHeight: '1.4' }}>
-                    {item.deliveryAddress}
+                  <div>
+                    {item.customerName && <div style={{ fontSize: '0.85rem', fontWeight: '700' }}>{item.customerName}</div>}
+                    <div style={{ fontSize: '0.9rem', color: 'var(--secondary)', fontWeight: '500', lineHeight: '1.4' }}>
+                      {item.deliveryAddress}
+                    </div>
                   </div>
                 </div>
 

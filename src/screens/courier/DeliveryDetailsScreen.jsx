@@ -334,6 +334,7 @@ export default function DeliveryDetailsScreen() {
             <div style={{ width: '20px', height: '20px', background: 'var(--accent)', borderRadius: '50%', border: '4px solid white', boxShadow: 'var(--shadow-sm)' }}></div>
             <div>
               <div style={{ fontSize: '0.7rem', fontWeight: '800', color: 'var(--accent)', textTransform: 'uppercase', marginBottom: '4px' }}>Destino da Entrega</div>
+              {delivery.customerName && <div style={{ fontSize: '0.95rem', fontWeight: '700', marginBottom: '2px' }}>{delivery.customerName}</div>}
               <div style={{ fontSize: '0.95rem', fontWeight: '600', lineHeight: '1.4' }}>{delivery.deliveryAddress}</div>
             </div>
           </div>
@@ -388,7 +389,7 @@ export default function DeliveryDetailsScreen() {
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '8px 0', borderBottom: '1px solid var(--border)' }}>
                 <input type="checkbox" checked={!!selectedDeliveries[delivery.id]} onChange={() => toggleDeliverySelection(delivery.id)} />
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: '700' }}>Este pedido</div>
+                  <div style={{ fontWeight: '700' }}>Este pedido{delivery.customerName ? ` (${delivery.customerName})` : ''}</div>
                   <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{delivery.deliveryAddress}</div>
                 </div>
               </div>

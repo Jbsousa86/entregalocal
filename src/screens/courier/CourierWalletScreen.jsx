@@ -5,12 +5,16 @@ import { auth, db } from '../../firebaseClient';
 import { useNavigate } from 'react-router-dom';
 
 export default function CourierWalletScreen() {
-  const [wallet, setWallet] = useState({ available: 0, total: 0, withdrawn: 0 });
+  const [wallet, setWallet] = useState({ available: 0, blocked: 0, total: 0, withdrawn: 0 });
   const [transactions, setTransactions] = useState([]);
   const [withdrawals, setWithdrawals] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('transactions'); // 'transactions' ou 'withdrawals'
   const [filterRange, setFilterRange] = useState('all');
+  const [showWithdrawModal, setShowWithdrawModal] = useState(false);
+  const [withdrawAmount, setWithdrawAmount] = useState('');
+  const [pixKey, setPixKey] = useState('');
+  const [isWithdrawing, setIsWithdrawing] = useState(false);
   const navigate = useNavigate();
 
   // 1. Buscar dados da carteira e transações
@@ -19,8 +23,15 @@ export default function CourierWalletScreen() {
     let unsubscribeDeliveries = null;
     let unsubscribeWithdrawals = null;
 
-    unsubscribeAuth = onAuthStateChanged(auth, (user) => {
+    unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
       if (user) {
+        // Tentar preencher a chave PIX padrão se houver no perfil do entregador
+        try {
+          const courierDoc = await getDoc(doc(db, 'couriers', user.uid));
+          if (courierDoc.exists() && courierDoc.data().pixKey) {
+            setPixKey(courierDoc.data().pixKey);
+          }
+        } catch (e) {}
         // Buscar entregas entregues para calcular ganhos
         const deliveriesQuery = query(
           collection(db, 'deliveries'),
@@ -71,12 +82,19 @@ export default function CourierWalletScreen() {
 
           unsubscribeWithdrawals = onSnapshot(withdrawalsQuery, (withdrawalsSnapshot) => {
             let totalWithdrawn = 0;
+            let totalPending = 0;
             const withdrawalsList = [];
 
             withdrawalsSnapshot.forEach((withdrawalDoc) => {
               const wData = withdrawalDoc.data();
               const amount = Number(wData.amount || 0);
-              totalWithdrawn += amount;
+              const status = wData.status || 'pending';
+              
+              if (status === 'completed') {
+                totalWithdrawn += amount;
+              } else if (status === 'pending') {
+                totalPending += amount;
+              }
 
               const dateSource = wData.createdAt;
               let jsDate = new Date(0);
@@ -102,10 +120,11 @@ export default function CourierWalletScreen() {
             withdrawalsList.sort((a, b) => (b.date?.getTime() || 0) - (a.date?.getTime() || 0));
             setWithdrawals(withdrawalsList);
 
-            // Calcular saldo disponível
-            const available = totalEarnings - totalWithdrawn;
+            // Calcular saldo disponível e bloqueado
+            const available = totalEarnings - totalWithdrawn - totalPending;
             setWallet({
               available: Math.max(0, available),
+              blocked: totalPending,
               total: totalEarnings,
               withdrawn: totalWithdrawn
             });
@@ -130,6 +149,42 @@ export default function CourierWalletScreen() {
       if (unsubscribeWithdrawals) unsubscribeWithdrawals();
     };
   }, []);
+
+  const handleWithdrawRequest = async () => {
+    const amountNum = parseFloat(withdrawAmount);
+    if (isNaN(amountNum) || amountNum <= 0) {
+      alert('Por favor, informe um valor válido para o saque.');
+      return;
+    }
+    if (amountNum > wallet.available) {
+      alert('O valor solicitado é maior que o saldo disponível.');
+      return;
+    }
+    if (!pixKey.trim()) {
+      alert('Por favor, informe sua chave PIX.');
+      return;
+    }
+
+    setIsWithdrawing(true);
+    try {
+      const { addDoc, serverTimestamp, collection } = await import('firebase/firestore');
+      await addDoc(collection(db, 'withdrawals'), {
+        courierId: auth.currentUser.uid,
+        amount: amountNum,
+        bankAccount: pixKey,
+        status: 'pending',
+        createdAt: serverTimestamp()
+      });
+      alert('Solicitação de saque enviada com sucesso! O valor ficará bloqueado até a transferência ser concluída.');
+      setShowWithdrawModal(false);
+      setWithdrawAmount('');
+    } catch (error) {
+      console.error('Erro ao solicitar saque:', error);
+      alert('Ocorreu um erro ao solicitar o saque. Tente novamente.');
+    } finally {
+      setIsWithdrawing(false);
+    }
+  };
 
   // Filtrar transações por período
   const getFilteredTransactions = () => {
@@ -237,8 +292,16 @@ export default function CourierWalletScreen() {
         <div style={{ fontSize: '2.5rem', fontWeight: '800', marginBottom: '24px' }}>
           R$ {wallet.available.toFixed(2).replace('.', ',')}
         </div>
+        <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', marginBottom: '24px' }}>
+          <div>
+            <div style={{ fontSize: '0.8rem', opacity: 0.8 }}>Bloqueado (Saques Pendentes)</div>
+            <div style={{ fontSize: '1.25rem', fontWeight: '700' }}>R$ {wallet.blocked.toFixed(2).replace('.', ',')}</div>
+          </div>
+        </div>
         <button
+          onClick={() => setShowWithdrawModal(true)}
           className="btn"
+          disabled={wallet.available <= 0}
           style={{
             width: '100%',
             height: '48px',
@@ -247,11 +310,12 @@ export default function CourierWalletScreen() {
             border: '2px solid white',
             borderRadius: '12px',
             fontWeight: '700',
-            cursor: 'pointer',
-            fontSize: '1rem'
+            cursor: wallet.available <= 0 ? 'not-allowed' : 'pointer',
+            fontSize: '1rem',
+            opacity: wallet.available <= 0 ? 0.5 : 1
           }}
         >
-          Solicitar Saque
+          {wallet.available <= 0 ? 'Saldo Insuficiente' : 'Solicitar Saque'}
         </button>
       </div>
 
@@ -460,6 +524,61 @@ export default function CourierWalletScreen() {
           ))
         )}
       </div>
+
+      {/* Modal de Saque */}
+      {showWithdrawModal && (
+        <div style={{ 
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, 
+          background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'flex-end', zIndex: 1000 
+        }}>
+          <div style={{ 
+            background: 'white', width: '100%', borderTopLeftRadius: '24px', borderTopRightRadius: '24px',
+            padding: '24px', animation: 'slideUp 0.3s ease'
+          }}>
+            <h3 style={{ margin: '0 0 16px 0', fontSize: '1.25rem' }}>Solicitar Saque</h3>
+            
+            <div className="form-group">
+              <label>Valor do Saque (Disponível: R$ {wallet.available.toFixed(2).replace('.', ',')})</label>
+              <input 
+                type="number" 
+                step="0.01"
+                placeholder="Ex: 50.00" 
+                value={withdrawAmount} 
+                onChange={e => setWithdrawAmount(e.target.value)} 
+                max={wallet.available}
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Chave PIX</label>
+              <input 
+                type="text" 
+                placeholder="Telefone, CPF ou E-mail" 
+                value={pixKey} 
+                onChange={e => setPixKey(e.target.value)} 
+              />
+            </div>
+
+            <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
+              <button 
+                onClick={handleWithdrawRequest} 
+                disabled={isWithdrawing}
+                className="btn" 
+                style={{ flex: 1, height: '50px' }}
+              >
+                {isWithdrawing ? 'Processando...' : 'Confirmar Saque'}
+              </button>
+              <button 
+                onClick={() => setShowWithdrawModal(false)} 
+                className="btn btn-secondary" 
+                style={{ height: '50px', background: 'var(--surface)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

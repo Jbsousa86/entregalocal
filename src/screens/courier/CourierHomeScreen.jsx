@@ -316,7 +316,21 @@ export default function CourierHomeScreen() {
 
       <div style={{ padding: '24px' }}>
         {/* Quick Actions */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '24px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', marginBottom: '24px' }}>
+          <button 
+            onClick={() => navigate('/courier/wallet')} 
+            className="card"
+            style={{ 
+              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', padding: '16px',
+              border: 'none', cursor: 'pointer', background: 'var(--surface)'
+            }}
+          >
+            <div style={{ color: 'var(--primary)' }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="12" x="2" y="6" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg>
+            </div>
+            <span style={{ fontSize: '0.8rem', fontWeight: '700', color: 'var(--secondary)' }}>Carteira</span>
+          </button>
+
           <button 
             onClick={() => navigate('/courier/history')} 
             className="card"

@@ -18,6 +18,7 @@ import CourierHomeScreen from '../screens/courier/CourierHomeScreen';
 import DeliveryDetailsScreen from '../screens/courier/DeliveryDetailsScreen';
 import AcceptedDeliveryScreen from '../screens/courier/AcceptedDeliveryScreen';
 import CourierHistoryScreen from '../screens/courier/CourierHistoryScreen';
+import CourierWalletScreen from '../screens/courier/CourierWalletScreen';
 import CourierProfileScreen from '../screens/courier/CourierProfileScreen';
 // Admin
 import AdminLoginScreen from '../screens/admin/AdminLoginScreen';
@@ -110,6 +111,7 @@ export default function AppRoutes() {
 				<Route path="/courier/delivery-details" element={<DeliveryDetailsScreen />} />
 				<Route path="/courier/accepted" element={<AcceptedDeliveryScreen />} />
 				<Route path="/courier/history" element={<CourierHistoryScreen />} />
+				<Route path="/courier/wallet" element={<CourierWalletScreen />} />
 				<Route path="/courier/profile" element={<CourierProfileScreen />} />
 
 				{/* Fluxo Admin */}

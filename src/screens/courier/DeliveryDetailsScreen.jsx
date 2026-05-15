@@ -404,6 +404,10 @@ export default function DeliveryDetailsScreen() {
               ))}
             </div>
 
+            <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginBottom: '6px' }}>
+              Total a receber: <span style={{ fontWeight: '800', color: 'var(--primary)', fontSize: '1rem' }}>R$ {surchargePreview.toFixed(2).replace('.', ',')}</span>
+            </div>
+
             <div style={{ display: 'flex', gap: '12px' }}>
               <button
                 onClick={handleConfirmSelection}

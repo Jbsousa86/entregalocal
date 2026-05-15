@@ -12,6 +12,7 @@ import WaitingCourierScreen from '../screens/establishment/WaitingCourierScreen'
 import DeliveryInProgressScreen from '../screens/establishment/DeliveryInProgressScreen';
 import DeliveryHistoryScreen from '../screens/establishment/DeliveryHistoryScreen';
 import EstablishmentProfileScreen from '../screens/establishment/EstablishmentProfileScreen';
+import EstablishmentWalletScreen from '../screens/establishment/EstablishmentWalletScreen';
 // Entregador
 import CourierRegisterScreen from '../screens/courier/CourierRegisterScreen';
 import CourierHomeScreen from '../screens/courier/CourierHomeScreen';
@@ -104,6 +105,7 @@ export default function AppRoutes() {
 				<Route path="/establishment/in-progress" element={<DeliveryInProgressScreen />} />
 				<Route path="/establishment/history" element={<DeliveryHistoryScreen />} />
 				<Route path="/establishment/profile" element={<EstablishmentProfileScreen />} />
+				<Route path="/establishment/wallet" element={<EstablishmentWalletScreen />} />
 
 				{/* Fluxo Entregador */}
 				<Route path="/courier/register" element={<CourierRegisterWrapper />} />

@@ -159,28 +159,6 @@ export default function DeliveryDetailsScreen() {
     await acceptDelivery(deliveriesToAccept);
   };
 
-  const handleAcceptSolo = async () => {
-    setShowGroupChoice(false);
-    await acceptDelivery([{ id: delivery.id, data: delivery }]);
-  };
-
-  const acceptSingleById = async (id) => {
-    setShowGroupChoice(false);
-    let item;
-    if (id === delivery.id) {
-      item = { id: delivery.id, data: delivery };
-    } else {
-      const other = otherDeliveries.find((d) => d.id === id);
-      if (!other) {
-        alert('Pedido não encontrado.');
-        return;
-      }
-      item = { id: other.id, data: other };
-    }
-
-    await acceptDelivery([item]);
-  };
-
   const selectedCount = Object.keys(selectedDeliveries).filter((k) => selectedDeliveries[k]).length;
   // Calculate total: First order is full value, subsequent orders add +R$ 1.00 each
   let surchargePreview = 0;
@@ -426,26 +404,14 @@ export default function DeliveryDetailsScreen() {
               ))}
             </div>
 
-            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginBottom: '6px' }}>Total a receber pelo grupo: R$ {surchargePreview.toFixed(2).replace('.', ',')}</div>
-                <button
-                  onClick={handleConfirmSelection}
-                  disabled={loading}
-                  className="btn"
-                  style={{ width: '100%', height: '50px' }}
-                >
-                  {loading ? 'Processando...' : `Confirmar seleção (${selectedCount}/3)`}
-                </button>
-              </div>
-
+            <div style={{ display: 'flex', gap: '12px' }}>
               <button
-                onClick={handleAcceptSolo}
+                onClick={handleConfirmSelection}
                 disabled={loading}
-                className="btn btn-secondary"
-                style={{ height: '50px' }}
+                className="btn"
+                style={{ flex: 1, height: '50px' }}
               >
-                Aceitar Apenas Este
+                {loading ? 'Processando...' : `Confirmar pedido (${selectedCount})`}
               </button>
             
               <button

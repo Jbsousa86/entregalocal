@@ -212,15 +212,15 @@ export default function AdminEstablishmentReport() {
 
             <div className="card" style={{ padding: '15px' }}>
                 <div style={{ overflowX: 'auto' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '500px' }}>
+                    <table className="admin-table">
                         <thead>
-                            <tr style={{ borderBottom: '2px solid var(--border)', textAlign: 'left' }}>
-                                <th style={{ padding: '10px' }}>Nome do Estabelecimento</th>
-                                <th style={{ padding: '10px' }}>Entregas</th>
-                                <th style={{ padding: '10px' }}>Total (R$)</th>
-                                <th style={{ padding: '10px' }}>Taxa Atual</th>
-                                <th style={{ padding: '10px' }}>Status</th>
-                                <th style={{ padding: '10px' }}>Ação</th>
+                            <tr>
+                                <th>Nome do Estabelecimento</th>
+                                <th>Entregas</th>
+                                <th>Total (R$)</th>
+                                <th>Taxa Atual</th>
+                                <th>Status</th>
+                                <th>Ação</th>
                             </tr>
                         </thead>
                         <tbody>

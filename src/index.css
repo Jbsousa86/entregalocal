@@ -248,10 +248,44 @@ button:disabled {
   background: var(--surface);
   padding: 30px;
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-lg);
+  box-shadow: var(--shadow-md);
   width: 100%;
-  border: 1px solid rgba(255, 255, 255, 0.5);
-  backdrop-filter: blur(10px);
+  border: 1px solid var(--border);
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+
+.admin-table thead th {
+  background-color: var(--secondary);
+  color: white;
+  padding: 14px 12px;
+  text-align: left;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.admin-table tbody td {
+  padding: 14px 12px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-main);
+  background-color: var(--surface);
+}
+
+.admin-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.admin-table tbody tr:hover td {
+  background-color: var(--surface-muted);
 }
 
 .card-header {

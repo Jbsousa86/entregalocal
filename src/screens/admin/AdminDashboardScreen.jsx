@@ -463,15 +463,15 @@ export default function AdminDashboardScreen() {
                     🏦 Solicitações de Saque (Entregadores)
                 </h3>
                 <div style={{ overflowX: 'auto' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '800px' }}>
+                    <table className="admin-table">
                         <thead>
-                            <tr style={{ borderBottom: '2px solid var(--border)', textAlign: 'left' }}>
-                                <th style={{ padding: '10px' }}>Data</th>
-                                <th style={{ padding: '10px' }}>Entregador</th>
-                                <th style={{ padding: '10px' }}>Valor</th>
-                                <th style={{ padding: '10px' }}>Chave PIX/Conta</th>
-                                <th style={{ padding: '10px' }}>Status</th>
-                                <th style={{ padding: '10px' }}>Ações</th>
+                            <tr>
+                                <th>Data</th>
+                                <th>Entregador</th>
+                                <th>Valor</th>
+                                <th>Chave PIX/Conta</th>
+                                <th>Status</th>
+                                <th>Ações</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -524,16 +524,16 @@ export default function AdminDashboardScreen() {
                     🏪 Controle de Lojistas (Dívidas e Acertos)
                 </h3>
                 <div style={{ overflowX: 'auto' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '900px' }}>
+                    <table className="admin-table">
                         <thead>
-                            <tr style={{ borderBottom: '2px solid var(--border)', textAlign: 'left' }}>
-                                <th style={{ padding: '10px' }}>Lojista</th>
-                                <th style={{ padding: '10px' }}>Total Entregas</th>
-                                <th style={{ padding: '10px' }}>Total Devido (110%)</th>
-                                <th style={{ padding: '10px' }}>Total Pago</th>
-                                <th style={{ padding: '10px' }}>Saldo Devedor</th>
-                                <th style={{ padding: '10px' }}>Registrar Pagamento (R$)</th>
-                                <th style={{ padding: '10px' }}>Ação</th>
+                            <tr>
+                                <th>Lojista</th>
+                                <th>Total Entregas</th>
+                                <th>Total Devido (110%)</th>
+                                <th>Total Pago</th>
+                                <th>Saldo Devedor</th>
+                                <th>Registrar Pagamento (R$)</th>
+                                <th>Ação</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -596,15 +596,15 @@ export default function AdminDashboardScreen() {
             <div className="card" style={{ padding: '15px', marginTop: '20px' }}>
                 <h3 className="mb-4" style={{ fontSize: '1.2rem' }}>📝 Detalhamento das Entregas ({filter === 'all' ? 'Sempre' : filter === 'today' ? 'Hoje' : filter === 'week' ? 'Semana' : 'Mês'})</h3>
                 <div style={{ overflowX: 'auto' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '800px' }}>
+                    <table className="admin-table">
                         <thead>
-                            <tr style={{ borderBottom: '2px solid var(--border)', textAlign: 'left' }}>
-                                <th style={{ padding: '10px' }}>Data/Hora</th>
-                                <th style={{ padding: '10px' }}>Estabelecimento</th>
-                                <th style={{ padding: '10px' }}>Entregador</th>
-                                <th style={{ padding: '10px' }}>Valor</th>
-                                <th style={{ padding: '10px' }}>Status</th>
-                                <th style={{ padding: '10px' }}>Descrição/Obs</th>
+                            <tr>
+                                <th>Data/Hora</th>
+                                <th>Estabelecimento</th>
+                                <th>Entregador</th>
+                                <th>Valor</th>
+                                <th>Status</th>
+                                <th>Descrição/Obs</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -668,7 +668,7 @@ export default function AdminDashboardScreen() {
                         backgroundColor: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center',
                         zIndex: 9999, padding: '20px'
                     }}>
-                        <div className="card fade-in" style={{ width: '100%', maxWidth: '800px', maxHeight: '90vh', overflowY: 'auto', padding: '30px', position: 'relative' }}>
+                        <div id="printable-area" className="card fade-in" style={{ width: '100%', maxWidth: '800px', maxHeight: '90vh', overflowY: 'auto', padding: '30px', position: 'relative' }}>
                             <button onClick={() => setSelectedWithdrawal(null)} style={{ position: 'absolute', top: '20px', right: '20px', background: 'transparent', border: 'none', fontSize: '24px', cursor: 'pointer', color: 'var(--text-muted)' }}>&times;</button>
                             
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid var(--border)', paddingBottom: '16px', marginBottom: '24px' }}>
@@ -765,10 +765,21 @@ export default function AdminDashboardScreen() {
                         
                         <style>{`
                             @media print {
-                                body * { visibility: hidden; }
-                                .card * { visibility: visible; }
-                                .card { position: absolute; left: 0; top: 0; width: 100%; box-shadow: none; border: none; padding: 0; }
-                                button { display: none !important; }
+                                body * { visibility: hidden !important; }
+                                #printable-area, #printable-area * { visibility: visible !important; }
+                                #printable-area { 
+                                    position: absolute !important; 
+                                    left: 0 !important; 
+                                    top: 0 !important; 
+                                    width: 100% !important; 
+                                    box-shadow: none !important; 
+                                    border: none !important; 
+                                    margin: 0 !important; 
+                                    padding: 20px !important;
+                                    max-height: none !important;
+                                    overflow: visible !important;
+                                }
+                                button, .admin-dashboard button { display: none !important; }
                             }
                         `}</style>
                     </div>

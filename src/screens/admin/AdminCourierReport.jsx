@@ -186,14 +186,14 @@ export default function AdminCourierReport() {
 
             <div className="card" style={{ padding: '15px' }}>
                 <div style={{ overflowX: 'auto' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <table className="admin-table">
                         <thead>
-                            <tr style={{ borderBottom: '2px solid var(--border)', textAlign: 'left' }}>
-                                <th style={{ padding: '10px' }}>Nome do Entregador</th>
-                                <th style={{ padding: '10px' }}>Entregas</th>
-                                <th style={{ padding: '10px' }}>Total Gerado (R$)</th>
-                                <th style={{ padding: '10px' }}>Status</th>
-                                <th style={{ padding: '10px' }}>Ações</th>
+                            <tr>
+                                <th>Nome do Entregador</th>
+                                <th>Entregas</th>
+                                <th>Total Gerado (R$)</th>
+                                <th>Status</th>
+                                <th>Ações</th>
                             </tr>
                         </thead>
                         <tbody>

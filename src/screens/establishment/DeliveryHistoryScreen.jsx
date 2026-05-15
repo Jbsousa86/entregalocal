@@ -107,12 +107,27 @@ export default function DeliveryHistoryScreen() {
     const canceled = filtered.filter(item => item.status === 'canceled');
     const earnings = delivered.reduce((acc, curr) => acc + Number(curr.value || 0), 0);
 
+    const courierMap = {};
+    delivered.forEach(item => {
+      const courierId = item.courierId || 'unknown';
+      const courierName = item.courierName || 'Sem entregador';
+      
+      if (!courierMap[courierId]) {
+        courierMap[courierId] = { name: courierName, count: 0, earnings: 0 };
+      }
+      courierMap[courierId].count += 1;
+      courierMap[courierId].earnings += Number(item.value || 0);
+    });
+
+    const courierStats = Object.values(courierMap).sort((a, b) => b.count - a.count);
+
     setStats({
       totalCount: filtered.length,
       deliveredCount: delivered.length,
       canceledCount: canceled.length,
       totalEarnings: earnings,
-      filteredList: filtered
+      filteredList: filtered,
+      courierStats: courierStats
     });
   };
 
@@ -235,6 +250,40 @@ export default function DeliveryHistoryScreen() {
           <div style={{ fontSize: '1.1rem', fontWeight: '800', color: 'var(--secondary)' }}>{stats.totalCount}</div>
         </div>
       </div>
+
+      {/* Courier Stats Section */}
+      {stats.courierStats && stats.courierStats.length > 0 && (
+        <div style={{ marginBottom: '32px' }}>
+          <h3 style={{ marginBottom: '16px', fontSize: '1.1rem', paddingLeft: '4px' }}>Resumo por Entregador</h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {stats.courierStats.map((courier, index) => (
+              <div key={index} className="card fade-in" style={{ padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div style={{ 
+                    width: '36px', height: '36px', 
+                    borderRadius: '50%', 
+                    background: 'var(--surface-muted)', 
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    color: 'var(--secondary)', fontSize: '1.2rem'
+                  }}>
+                    👤
+                  </div>
+                  <div>
+                    <div style={{ fontWeight: '800', fontSize: '0.95rem', color: 'var(--secondary)' }}>{courier.name}</div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{courier.count} entrega{courier.count !== 1 ? 's' : ''} concluída{courier.count !== 1 ? 's' : ''}</div>
+                  </div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontSize: '0.7rem', fontWeight: '700', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Ganhou</div>
+                  <div style={{ fontWeight: '800', color: 'var(--primary)', fontSize: '1.1rem' }}>
+                    R$ {courier.earnings.toFixed(2).replace('.', ',')}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* History List */}
       <div>

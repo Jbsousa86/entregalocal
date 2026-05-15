@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 
 export default function DeliveryInProgressScreen() {
   const [deliveries, setDeliveries] = useState([]);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -13,7 +14,6 @@ export default function DeliveryInProgressScreen() {
 
     const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
       if (user) {
-        // Buscar entregas deste estabelecimento
         const q = query(
           collection(db, 'deliveries'),
           where('establishmentId', '==', user.uid)
@@ -23,13 +23,21 @@ export default function DeliveryInProgressScreen() {
           const list = [];
           snapshot.forEach(doc => {
             const data = doc.data();
-            // Agora inclui 'pending' para mostrar o que está aguardando entregador
             if (['pending', 'accepted', 'in_progress', 'arrived_pickup'].includes(data.status)) {
               list.push({ id: doc.id, ...data });
             }
           });
+          // Sort by newest first
+          list.sort((a, b) => {
+            const dateA = a.createdAt?.seconds || 0;
+            const dateB = b.createdAt?.seconds || 0;
+            return dateB - dateA;
+          });
           setDeliveries(list);
+          setLoading(false);
         });
+      } else {
+        navigate('/');
       }
     });
 
@@ -37,43 +45,166 @@ export default function DeliveryInProgressScreen() {
       unsubscribeAuth();
       if (unsubscribeSnapshot) unsubscribeSnapshot();
     };
-  }, []);
+  }, [navigate]);
+
+  const getStatusBadge = (status) => {
+    switch (status) {
+      case 'pending': return { label: 'Aguardando Entregador', bg: '#fef3c7', color: '#d97706' };
+      case 'accepted': return { label: 'A caminho da Loja', bg: '#e0e7ff', color: '#4338ca' };
+      case 'arrived_pickup': return { label: 'Entregador no Local', bg: '#f3e8ff', color: '#7e22ce' };
+      case 'in_progress': return { label: 'Em Rota de Entrega', bg: '#dcfce7', color: '#15803d' };
+      default: return { label: 'Desconhecido', bg: '#f1f5f9', color: '#475569' };
+    }
+  };
+
+  if (loading) return (
+    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', color: 'var(--primary)' }}>
+      <div style={{ width: '40px', height: '40px', border: '4px solid var(--primary-light)', borderTopColor: 'var(--primary)', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+    </div>
+  );
 
   return (
-    <div className="delivery-in-progress-screen">
-      <h2>Entregas em Andamento</h2>
-      <button onClick={() => navigate('/establishment/home')} style={{ marginBottom: '20px' }}>Voltar</button>
+    <div className="delivery-in-progress-screen fade-in" style={{ paddingBottom: '40px' }}>
+      <header style={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'space-between', 
+        marginBottom: '24px',
+        padding: '0 4px'
+      }}>
+        <button 
+          onClick={() => navigate('/establishment/home')}
+          style={{ 
+            background: 'var(--surface)', 
+            border: 'none', 
+            borderRadius: '12px', 
+            width: '40px', 
+            height: '40px', 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center',
+            boxShadow: 'var(--shadow-sm)',
+            cursor: 'pointer',
+            color: 'var(--secondary)'
+          }}
+        >
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="m15 18-6-6 6-6"/>
+          </svg>
+        </button>
+        <h2 style={{ fontSize: '1.25rem', fontWeight: '800', flex: 1, textAlign: 'center', margin: '0 12px' }}>
+          Corridas em Andamento
+        </h2>
+        <div style={{ width: '40px' }}></div>
+      </header>
 
-      {deliveries.length === 0 ? (
-        <p>Nenhuma entrega em andamento (aceita por entregador).</p>
-      ) : (
-        deliveries.map(item => (
-          <div key={item.id} style={{ border: '1px solid #ccc', padding: '15px', margin: '10px 0', borderRadius: '8px' }}>
-            <p><strong>Status:</strong> {
-              item.status === 'pending' ? <span style={{ color: 'orange' }}>Aguardando entregador</span> :
-                item.status === 'accepted' ? <span style={{ color: 'blue' }}>Aceita pelo entregador</span> :
-                  item.status === 'arrived_pickup' ? <span style={{ color: 'purple' }}>Entregador no local</span> :
-                    <span style={{ color: 'green' }}>Em rota de entrega</span>
-            }</p>
-            <p><strong>Entregador:</strong> {item.courierName || 'Aguardando...'}</p>
-            {['pending', 'accepted', 'arrived_pickup'].includes(item.status) && (
-              <div style={{
-                backgroundColor: 'var(--surface)',
-                padding: '10px',
-                borderRadius: '6px',
-                marginTop: '10px',
-                border: '1px dashed var(--primary)',
-                textAlign: 'center'
-              }}>
-                <span style={{ fontSize: '13px', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Código para o entregador:</span>
-                <span style={{ fontSize: '24px', fontWeight: 'bold', color: 'var(--primary)', letterSpacing: '4px' }}>{item.pickupCode}</span>
-              </div>
-            )}
-            <p style={{ marginTop: '10px' }}><strong>Destino:</strong> {item.deliveryAddress}</p>
-            <p><strong>Valor:</strong> R$ {Number(item.value).toFixed(2).replace('.', ',')}</p>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        {deliveries.length === 0 ? (
+          <div className="card" style={{ padding: '60px 40px', textAlign: 'center' }}>
+            <div style={{ fontSize: '3rem', marginBottom: '12px' }}>🛵</div>
+            <p style={{ fontWeight: '600', color: 'var(--text-muted)' }}>Nenhuma corrida em andamento no momento.</p>
           </div>
-        ))
-      )}
+        ) : (
+          deliveries.map(item => {
+            const badge = getStatusBadge(item.status);
+            return (
+              <div key={item.id} className="card fade-in" style={{ padding: '20px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div style={{ 
+                      width: '32px', height: '32px', 
+                      borderRadius: '8px', 
+                      background: 'var(--surface-muted)', 
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      color: 'var(--secondary)'
+                    }}>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M3 9h18v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9Z"/><path d="m3 9 2.45-4.9A2 2 0 0 1 7.24 3h9.52a2 2 0 0 1 1.8 1.1L21 9"/>
+                      </svg>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '0.85rem', fontWeight: '800', color: 'var(--text-muted)' }}>ID: #{item.id.slice(-4).toUpperCase()}</div>
+                    </div>
+                  </div>
+                  <div style={{ 
+                    padding: '6px 12px', 
+                    borderRadius: '20px', 
+                    fontSize: '0.75rem', 
+                    fontWeight: '800', 
+                    background: badge.bg, 
+                    color: badge.color,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em'
+                  }}>
+                    {badge.label}
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
+                  <div style={{ color: 'var(--accent)', paddingTop: '2px' }}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '0.7rem', fontWeight: '800', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Destino</div>
+                    {item.customerName && <div style={{ fontSize: '0.9rem', fontWeight: '700' }}>{item.customerName}</div>}
+                    <div style={{ fontSize: '0.9rem', color: 'var(--secondary)', fontWeight: '600', lineHeight: '1.4' }}>
+                      {item.deliveryAddress}
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between', 
+                  alignItems: 'center', 
+                  paddingTop: '16px', 
+                  borderTop: '1px solid var(--surface-muted)' 
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--primary-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px' }}>
+                      🛵
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '0.7rem', fontWeight: '700', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Entregador</div>
+                      <div style={{ fontSize: '0.9rem', fontWeight: '700', color: 'var(--secondary)' }}>{item.courierName || 'Aguardando...'}</div>
+                    </div>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontSize: '0.7rem', fontWeight: '700', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Valor</div>
+                    <div style={{ fontSize: '1.1rem', fontWeight: '800', color: 'var(--primary)' }}>
+                      R$ {Number(item.value || 0).toFixed(2).replace('.', ',')}
+                    </div>
+                  </div>
+                </div>
+
+                {['pending', 'accepted', 'arrived_pickup'].includes(item.status) && (
+                  <div style={{
+                    backgroundColor: 'var(--surface-muted)',
+                    padding: '16px',
+                    borderRadius: '12px',
+                    marginTop: '16px',
+                    border: '2px dashed var(--primary)',
+                    textAlign: 'center',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '4px'
+                  }}>
+                    <span style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--primary-dark)', textTransform: 'uppercase' }}>
+                      Código de Coleta (Para o entregador)
+                    </span>
+                    <span style={{ fontSize: '2rem', fontWeight: '800', color: 'var(--primary)', letterSpacing: '8px' }}>
+                      {item.pickupCode}
+                    </span>
+                  </div>
+                )}
+              </div>
+            );
+          })
+        )}
+      </div>
     </div>
   );
 }

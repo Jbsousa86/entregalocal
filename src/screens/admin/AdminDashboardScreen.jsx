@@ -16,6 +16,8 @@ export default function AdminDashboardScreen() {
         totalCouriers: 0
     });
     const [allDeliveries, setAllDeliveries] = useState([]);
+    const [withdrawals, setWithdrawals] = useState([]);
+    const [couriersData, setCouriersData] = useState({});
     const [filter, setFilter] = useState('today');
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
@@ -105,12 +107,22 @@ export default function AdminDashboardScreen() {
                     establishmentMap[docSnap.id] = docSnap.data();
                 });
 
-                // Fetch all couriers to count os entregadores cadastrados
+                // Fetch all couriers to count os entregadores cadastrados e mapear nomes
                 const courierSnapshot = await getDocs(collection(db, 'couriers'));
                 const courierMap = {};
                 courierSnapshot.forEach(docSnap => {
                     courierMap[docSnap.id] = docSnap.data();
                 });
+                setCouriersData(courierMap);
+
+                // Fetch withdrawals
+                const wSnapshot = await getDocs(collection(db, 'withdrawals'));
+                const wList = [];
+                wSnapshot.forEach(docSnap => {
+                    wList.push({ id: docSnap.id, ...docSnap.data() });
+                });
+                wList.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+                setWithdrawals(wList);
 
                 // Merge with stats
                 Object.keys(establishmentMap).forEach(estId => {
@@ -209,6 +221,19 @@ export default function AdminDashboardScreen() {
         } catch (error) {
             console.error("Erro ao atualizar valor:", error);
             alert('Erro ao atualizar valor.');
+        }
+    };
+
+    const handleUpdateWithdrawalStatus = async (id, newStatus) => {
+        try {
+            await updateDoc(doc(db, 'withdrawals', id), {
+                status: newStatus
+            });
+            setWithdrawals(prev => prev.map(w => w.id === id ? { ...w, status: newStatus } : w));
+            alert(`Saque marcado como ${newStatus === 'completed' ? 'concluído' : 'rejeitado'}!`);
+        } catch (error) {
+            console.error("Erro ao atualizar saque:", error);
+            alert("Erro ao atualizar status do saque.");
         }
     };
 
@@ -360,6 +385,76 @@ export default function AdminDashboardScreen() {
                 </div>
             </div>
 
+            {/* Solicitações de Saque */}
+            <div className="card" style={{ padding: '15px', marginTop: '20px' }}>
+                <h3 className="mb-4" style={{ fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    🏦 Solicitações de Saque (Entregadores)
+                </h3>
+                <div style={{ overflowX: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '800px' }}>
+                        <thead>
+                            <tr style={{ borderBottom: '2px solid var(--border)', textAlign: 'left' }}>
+                                <th style={{ padding: '10px' }}>Data</th>
+                                <th style={{ padding: '10px' }}>Entregador</th>
+                                <th style={{ padding: '10px' }}>Valor</th>
+                                <th style={{ padding: '10px' }}>Chave PIX/Conta</th>
+                                <th style={{ padding: '10px' }}>Status</th>
+                                <th style={{ padding: '10px' }}>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {withdrawals.map((w, i) => {
+                                const ds = w.createdAt;
+                                const date = ds?.toDate ? ds.toDate() : (ds?.seconds ? new Date(ds.seconds * 1000) : new Date(0));
+                                const courierName = couriersData[w.courierId]?.name || 'Entregador Desconhecido';
+                                return (
+                                    <tr key={i} style={{ borderBottom: '1px solid var(--border)', fontSize: '14px' }}>
+                                        <td style={{ padding: '10px' }}>{date.toLocaleDateString('pt-BR')} {date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</td>
+                                        <td style={{ padding: '10px', fontWeight: 'bold' }}>{courierName}</td>
+                                        <td style={{ padding: '10px', color: 'var(--primary)', fontWeight: 'bold' }}>R$ {parseFloat(w.amount || 0).toFixed(2)}</td>
+                                        <td style={{ padding: '10px' }}>{w.bankAccount || '---'}</td>
+                                        <td style={{ padding: '10px' }}>
+                                            <span style={{
+                                                padding: '4px 8px',
+                                                borderRadius: '12px',
+                                                fontSize: '12px',
+                                                fontWeight: '600',
+                                                backgroundColor: w.status === 'completed' ? '#d4edda' : w.status === 'pending' ? '#fff3cd' : '#f8d7da',
+                                                color: w.status === 'completed' ? '#155724' : w.status === 'pending' ? '#856404' : '#721c24'
+                                            }}>
+                                                {w.status === 'completed' ? 'Concluído' : w.status === 'pending' ? 'Pendente' : 'Rejeitado'}
+                                            </span>
+                                        </td>
+                                        <td style={{ padding: '10px' }}>
+                                            {w.status === 'pending' && (
+                                                <div style={{ display: 'flex', gap: '8px' }}>
+                                                    <button 
+                                                        onClick={() => handleUpdateWithdrawalStatus(w.id, 'completed')}
+                                                        style={{ background: 'var(--success)', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '8px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}
+                                                    >
+                                                        Aprovar (Pago)
+                                                    </button>
+                                                    <button 
+                                                        onClick={() => handleUpdateWithdrawalStatus(w.id, 'rejected')}
+                                                        style={{ background: 'var(--error)', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '8px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}
+                                                    >
+                                                        Rejeitar
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </td>
+                                    </tr>
+                                );
+                            })}
+                            {withdrawals.length === 0 && (
+                                <tr>
+                                    <td colSpan="6" style={{ padding: '20px', textAlign: 'center', color: '#666' }}>Nenhuma solicitação de saque encontrada.</td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
 
             {/* Detalhamento de Entregas */}
             <div className="card" style={{ padding: '15px', marginTop: '20px' }}>

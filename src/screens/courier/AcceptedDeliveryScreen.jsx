@@ -183,7 +183,7 @@ export default function AcceptedDeliveryScreen() {
 
         {groupSize > 1 && (
           <div style={{ marginTop: '18px', padding: '16px', background: '#f8fafc', borderRadius: '16px', border: '1px solid var(--border)' }}>
-            <p style={{ margin: 0, fontWeight: '700' }}>Total do grupo: R$ {totalValue}</p>
+            <p style={{ margin: 0, fontWeight: '700' }}>Total do grupo: R$ {totalValue.replace('.', ',')}</p>
             <p style={{ margin: '8px 0 0', color: 'var(--text-muted)', fontSize: '0.9rem' }}>Este grupo inclui {groupSize} pedidos de entrega.</p>
           </div>
         )}
@@ -196,7 +196,7 @@ export default function AcceptedDeliveryScreen() {
             <div key={item.id} style={{ marginBottom: '12px', paddingBottom: '12px', borderBottom: '1px solid rgba(0,0,0,0.05)' }}>
               <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '4px' }}>Destino</div>
               <div style={{ fontWeight: '600' }}>{item.deliveryAddress}</div>
-              <div style={{ marginTop: '6px', fontSize: '0.85rem', color: 'var(--secondary)' }}>R$ {item.value}</div>
+              <div style={{ marginTop: '6px', fontSize: '0.85rem', color: 'var(--secondary)' }}>R$ {Number(item.value).toFixed(2).replace('.', ',')}</div>
             </div>
           ))}
         </div>

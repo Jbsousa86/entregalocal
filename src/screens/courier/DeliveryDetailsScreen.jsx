@@ -305,7 +305,7 @@ export default function DeliveryDetailsScreen() {
           </div>
           <div style={{ textAlign: 'right' }}>
             <div style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Pagamento</div>
-            <div style={{ fontSize: '1.25rem', fontWeight: '800', color: 'var(--primary)' }}>R$ {delivery.value}</div>
+            <div style={{ fontSize: '1.25rem', fontWeight: '800', color: 'var(--primary)' }}>R$ {Number(delivery.value).toFixed(2).replace('.', ',')}</div>
           </div>
         </div>
 
@@ -389,7 +389,7 @@ export default function DeliveryDetailsScreen() {
                   <div style={{ fontWeight: '700' }}>Este pedido</div>
                   <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{delivery.deliveryAddress}</div>
                 </div>
-                <div style={{ fontWeight: '800', color: 'var(--primary)' }}>R$ {delivery.value}</div>
+                <div style={{ fontWeight: '800', color: 'var(--primary)' }}>R$ {Number(delivery.value).toFixed(2).replace('.', ',')}</div>
               </div>
 
               {otherDeliveries.map((d) => (
@@ -399,14 +399,14 @@ export default function DeliveryDetailsScreen() {
                     <div style={{ fontWeight: '700' }}>{d.customerName || 'Pedido'}</div>
                     <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{d.deliveryAddress}</div>
                   </div>
-                  <div style={{ fontWeight: '800', color: 'var(--primary)' }}>R$ {d.value}</div>
+                  <div style={{ fontWeight: '800', color: 'var(--primary)' }}>R$ {Number(d.value).toFixed(2).replace('.', ',')}</div>
                 </div>
               ))}
             </div>
 
             <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginBottom: '6px' }}>Taxa por pedido: R$ {surchargePreview.toFixed(2)}</div>
+                <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginBottom: '6px' }}>Taxa por pedido: R$ {surchargePreview.toFixed(2).replace('.', ',')}</div>
                 <button
                   onClick={handleConfirmSelection}
                   disabled={loading}

@@ -70,7 +70,7 @@ export default function DeliveryInProgressScreen() {
               </div>
             )}
             <p style={{ marginTop: '10px' }}><strong>Destino:</strong> {item.deliveryAddress}</p>
-            <p><strong>Valor:</strong> R$ {item.value}</p>
+            <p><strong>Valor:</strong> R$ {Number(item.value).toFixed(2).replace('.', ',')}</p>
           </div>
         ))
       )}

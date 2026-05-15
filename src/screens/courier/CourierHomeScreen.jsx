@@ -440,7 +440,7 @@ export default function CourierHomeScreen() {
                   <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '800' }}>{item.establishmentName || 'Estabelecimento'}</h4>
                 </div>
                 <div style={{ fontSize: '1.25rem', fontWeight: '800', color: 'var(--primary)' }}>
-                  R$ {item.value}
+                  R$ {Number(item.value).toFixed(2).replace('.', ',')}
                 </div>
               </div>
 

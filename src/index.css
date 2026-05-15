@@ -127,6 +127,15 @@ input:focus, select:focus, textarea:focus {
   transform: translateY(-1px);
 }
 
+input[type="checkbox"], input[type="radio"] {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  cursor: pointer;
+  accent-color: var(--primary);
+  flex-shrink: 0;
+}
+
 input::placeholder {
   color: #94a3b8;
 }

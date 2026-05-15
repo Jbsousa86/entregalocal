@@ -465,6 +465,40 @@ export default function AdminCourierReport() {
                                     <div style={{ fontSize: '1.1rem', fontWeight: 'bold' }}>R$ {available.toFixed(2)}</div>
                                 </div>
                             </div>
+
+                            {/* Detalhamento para Impressão/Recibo */}
+                            <div style={{ marginTop: '10px' }}>
+                                <h3 style={{ fontSize: '1rem', borderBottom: '1px solid var(--border)', paddingBottom: '8px', marginBottom: '12px', color: 'var(--secondary)' }}>🛵 Detalhamento das Corridas</h3>
+                                <div style={{ overflowX: 'auto' }}>
+                                    <table style={{ width: '100%', fontSize: '11px', borderCollapse: 'collapse' }}>
+                                        <thead>
+                                            <tr style={{ textAlign: 'left', borderBottom: '2px solid var(--border)', color: 'var(--text-muted)' }}>
+                                                <th style={{ padding: '8px 4px' }}>Data/Hora</th>
+                                                <th style={{ padding: '8px 4px' }}>Estabelecimento</th>
+                                                <th style={{ padding: '8px 4px' }}>Valor</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {courierDeliveries.map((d, i) => {
+                                                const ds = d.completedAt || d.createdAt;
+                                                const date = ds?.toDate ? ds.toDate() : new Date(ds?.seconds * 1000 || 0);
+                                                return (
+                                                    <tr key={i} style={{ borderBottom: '1px solid var(--border)' }}>
+                                                        <td style={{ padding: '8px 4px' }}>{date.toLocaleDateString('pt-BR')} {date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</td>
+                                                        <td style={{ padding: '8px 4px' }}>{d.establishmentName}</td>
+                                                        <td style={{ padding: '8px 4px', fontWeight: 'bold' }}>R$ {parseFloat(d.value).toFixed(2)}</td>
+                                                    </tr>
+                                                );
+                                            })}
+                                            {courierDeliveries.length === 0 && (
+                                                <tr>
+                                                    <td colSpan="3" style={{ padding: '20px', textAlign: 'center', color: '#999' }}>Nenhuma corrida encontrada.</td>
+                                                </tr>
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
                             {selectedWithdrawal.status === 'pending' && (
                                 <div className="no-print" style={{ display: 'flex', gap: '16px', marginTop: '24px' }}>
                                     <button onClick={() => handleUpdateWithdrawalStatus(selectedWithdrawal.id, 'completed')} style={{ flex: 1, background: 'var(--success)', color: 'white', padding: '12px', borderRadius: '12px', fontWeight: 'bold' }}>Aprovar Pagamento</button>

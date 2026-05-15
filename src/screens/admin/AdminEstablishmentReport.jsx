@@ -50,51 +50,50 @@ export default function AdminEstablishmentReport() {
         return { establishments };
     };
 
+    const fetchData = async () => {
+        try {
+            const querySnapshot = await getDocs(collection(db, 'deliveries'));
+            const deliveries = [];
+            querySnapshot.forEach((doc) => {
+                deliveries.push({ id: doc.id, ...doc.data() });
+            });
+            setAllDeliveries(deliveries);
+
+            const estSnapshot = await getDocs(collection(db, 'establishments'));
+            const estMap = {};
+            estSnapshot.forEach(docSnap => {
+                estMap[docSnap.id] = {
+                    ...docSnap.data(),
+                    count: 0,
+                    value: 0
+                };
+            });
+
+            const baseStats = calculateStats(deliveries, filter);
+
+            Object.keys(estMap).forEach(id => {
+                if (baseStats.establishments[id]) {
+                    estMap[id].count = baseStats.establishments[id].count;
+                    estMap[id].value = baseStats.establishments[id].value;
+                }
+            });
+
+            const pSnapshot = await getDocs(collection(db, 'establishment_payments'));
+            const pList = [];
+            pSnapshot.forEach(docSnap => {
+                pList.push({ id: docSnap.id, ...docSnap.data() });
+            });
+            setEstablishmentPayments(pList);
+
+            setStats({ establishments: estMap });
+        } catch (error) {
+            console.error("Erro ao carregar relatório:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const querySnapshot = await getDocs(collection(db, 'deliveries'));
-                const deliveries = [];
-                querySnapshot.forEach((doc) => {
-                    deliveries.push({ id: doc.id, ...doc.data() });
-                });
-                setAllDeliveries(deliveries);
-
-                const estSnapshot = await getDocs(collection(db, 'establishments'));
-                const estMap = {};
-                estSnapshot.forEach(docSnap => {
-                    estMap[docSnap.id] = {
-                        ...docSnap.data(),
-                        count: 0,
-                        value: 0
-                    };
-                });
-
-                const baseStats = calculateStats(deliveries, filter);
-
-                // Merge all establishments with their stats for the period
-                Object.keys(estMap).forEach(id => {
-                    if (baseStats.establishments[id]) {
-                        estMap[id].count = baseStats.establishments[id].count;
-                        estMap[id].value = baseStats.establishments[id].value;
-                    }
-                });
-
-                const pSnapshot = await getDocs(collection(db, 'establishment_payments'));
-                const pList = [];
-                pSnapshot.forEach(docSnap => {
-                    pList.push({ id: docSnap.id, ...docSnap.data() });
-                });
-                setEstablishmentPayments(pList);
-
-                setStats({ establishments: estMap });
-            } catch (error) {
-                console.error("Erro ao carregar relatório:", error);
-            } finally {
-                setLoading(false);
-            }
-        };
-
         fetchData();
     }, []);
 
@@ -159,6 +158,19 @@ export default function AdminEstablishmentReport() {
         }
     };
 
+    const handleUpdatePaymentStatus = async (paymentId, newStatus) => {
+        try {
+            await updateDoc(doc(db, 'establishment_payments', paymentId), {
+                status: newStatus
+            });
+            alert(`Pagamento ${newStatus === 'approved' ? 'aprovado' : 'rejeitado'}!`);
+            fetchData(); // Refresh to update balances
+        } catch (error) {
+            console.error(error);
+            alert("Erro ao atualizar pagamento.");
+        }
+    };
+
     const handleRecordPayment = async (estId) => {
         try {
             const amount = parseFloat(paymentAmount[estId]);
@@ -169,15 +181,15 @@ export default function AdminEstablishmentReport() {
 
             await addDoc(collection(db, 'establishment_payments'), {
                 establishmentId: estId,
+                establishmentName: stats.establishments[estId]?.name || 'Lojista',
                 amount: amount,
                 status: 'approved',
                 createdAt: serverTimestamp()
             });
 
-            const newPayment = { establishmentId: estId, amount: amount, status: 'approved', createdAt: { toDate: () => new Date() } };
-            setEstablishmentPayments(prev => [newPayment, ...prev]);
-            setPaymentAmount(prev => ({ ...prev, [id]: '' }));
-            alert("Pagamento registrado com sucesso!");
+            alert("Pagamento direto registrado e aprovado!");
+            setPaymentAmount(prev => ({ ...prev, [estId]: '' }));
+            fetchData();
         } catch (error) {
             console.error("Erro ao registrar pagamento:", error);
             alert("Erro ao registrar pagamento.");
@@ -185,6 +197,9 @@ export default function AdminEstablishmentReport() {
     };
 
     if (loading) return <div className="p-8 text-center">Carregando relatório de lojistas...</div>;
+
+    const pendingPayments = establishmentPayments.filter(p => p.status === 'pending');
+    const recentPayments = establishmentPayments.filter(p => p.status !== 'pending');
 
     return (
         <div className="admin-report fade-in" style={{ padding: '15px', maxWidth: '1000px', margin: '0 auto' }}>
@@ -307,6 +322,43 @@ export default function AdminEstablishmentReport() {
                 </div>
             </div>
 
+            {/* Pagamentos Pendentes */}
+            {pendingPayments.length > 0 && (
+                <div className="card" style={{ padding: '15px', marginTop: '30px', border: '2px solid var(--primary)' }}>
+                    <h3 className="mb-4" style={{ fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--primary)' }}>
+                        🔔 Pagamentos Aguardando Confirmação
+                    </h3>
+                    <div style={{ overflowX: 'auto' }}>
+                        <table className="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>Data</th>
+                                    <th>Lojista</th>
+                                    <th>Valor Informado</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {pendingPayments.map((p, i) => {
+                                    const date = p.createdAt?.toDate ? p.createdAt.toDate() : new Date(p.createdAt?.seconds * 1000 || 0);
+                                    return (
+                                        <tr key={i}>
+                                            <td>{date.toLocaleDateString('pt-BR')} {date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</td>
+                                            <td style={{ fontWeight: 'bold' }}>{p.establishmentName || 'Lojista'}</td>
+                                            <td style={{ fontWeight: 'bold', color: 'var(--primary)', fontSize: '1.1rem' }}>R$ {parseFloat(p.amount).toFixed(2)}</td>
+                                            <td style={{ display: 'flex', gap: '8px' }}>
+                                                <button onClick={() => handleUpdatePaymentStatus(p.id, 'approved')} style={{ background: 'var(--success)', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '8px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}>Confirmar Recebimento</button>
+                                                <button onClick={() => handleUpdatePaymentStatus(p.id, 'rejected')} style={{ background: 'var(--error)', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '8px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}>Rejeitar</button>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            )}
+
             <div className="card" style={{ padding: '15px', marginTop: '30px' }}>
                 <h3 className="mb-4" style={{ fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
                     💰 Gestão de Dívidas e Acertos
@@ -319,7 +371,7 @@ export default function AdminEstablishmentReport() {
                                 <th>Total Devido (110%)</th>
                                 <th>Total Pago</th>
                                 <th>Saldo Devedor</th>
-                                <th>Registrar Pagamento (R$)</th>
+                                <th>Baixa Direta (R$)</th>
                                 <th>Ação</th>
                             </tr>
                         </thead>
@@ -374,7 +426,7 @@ export default function AdminEstablishmentReport() {
 
             <div className="card" style={{ padding: '15px', marginTop: '30px' }}>
                 <h3 className="mb-4" style={{ fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    📜 Histórico de Pagamentos Recentes
+                    📜 Histórico de Pagamentos (Aprovados/Rejeitados)
                 </h3>
                 <div style={{ overflowX: 'auto' }}>
                     <table className="admin-table">
@@ -387,19 +439,27 @@ export default function AdminEstablishmentReport() {
                             </tr>
                         </thead>
                         <tbody>
-                            {establishmentPayments.slice().sort((a,b) => {
+                            {recentPayments.slice().sort((a,b) => {
                                 const da = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt?.seconds * 1000 || 0);
                                 const db = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(b.createdAt?.seconds * 1000 || 0);
                                 return db - da;
-                            }).slice(0, 10).map((p, i) => {
+                            }).slice(0, 15).map((p, i) => {
                                 const date = p.createdAt?.toDate ? p.createdAt.toDate() : new Date(p.createdAt?.seconds * 1000 || 0);
-                                const estName = stats.establishments[p.establishmentId]?.name || 'Lojista';
+                                const estName = stats.establishments[p.establishmentId]?.name || p.establishmentName || 'Lojista';
                                 return (
                                     <tr key={i}>
                                         <td>{date.toLocaleDateString('pt-BR')} {date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</td>
                                         <td>{estName}</td>
-                                        <td style={{ color: 'var(--success)', fontWeight: 'bold' }}>R$ {parseFloat(p.amount).toFixed(2)}</td>
-                                        <td><span style={{ color: 'var(--success)', fontSize: '12px', fontWeight: 'bold' }}>APROVADO</span></td>
+                                        <td style={{ color: p.status === 'approved' ? 'var(--success)' : 'var(--error)', fontWeight: 'bold' }}>R$ {parseFloat(p.amount).toFixed(2)}</td>
+                                        <td>
+                                            <span style={{ 
+                                                fontSize: '11px', fontWeight: 'bold', padding: '2px 6px', borderRadius: '4px',
+                                                backgroundColor: p.status === 'approved' ? '#d4edda' : '#f8d7da',
+                                                color: p.status === 'approved' ? '#155724' : '#721c24'
+                                            }}>
+                                                {p.status === 'approved' ? 'APROVADO' : 'REJEITADO'}
+                                            </span>
+                                        </td>
                                     </tr>
                                 );
                             })}

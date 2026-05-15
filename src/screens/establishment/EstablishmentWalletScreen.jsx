@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, addDoc, serverTimestamp } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth, db } from '../../firebaseClient';
 import { useNavigate } from 'react-router-dom';
@@ -9,6 +9,8 @@ export default function EstablishmentWalletScreen() {
   const [deliveriesList, setDeliveriesList] = useState([]);
   const [paymentsList, setPaymentsList] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [paymentAmount, setPaymentAmount] = useState('');
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -50,11 +52,10 @@ export default function EstablishmentWalletScreen() {
           // Lojista paga 100% da corrida + 10% de taxa da plataforma
           const totalDebtCalculated = totalDeliveryValue * 1.10;
 
-          // Fetch payments
+          // Fetch payments (pending and approved)
           const paymentsQuery = query(
             collection(db, 'establishment_payments'),
-            where('establishmentId', '==', user.uid),
-            where('status', '==', 'approved')
+            where('establishmentId', '==', user.uid)
           );
 
           unsubscribePayments = onSnapshot(paymentsQuery, (paySnapshot) => {
@@ -62,7 +63,9 @@ export default function EstablishmentWalletScreen() {
             const pList = [];
             paySnapshot.forEach((pDoc) => {
               const pData = pDoc.data();
-              totalPaid += Number(pData.amount || 0);
+              if (pData.status === 'approved') {
+                totalPaid += Number(pData.amount || 0);
+              }
               
               const ps = pData.createdAt;
               const pDate = ps?.toDate ? ps.toDate() : (ps?.seconds ? new Date(ps.seconds * 1000) : new Date(0));
@@ -99,6 +102,31 @@ export default function EstablishmentWalletScreen() {
     };
   }, [navigate]);
 
+  const handleSendPaymentNotification = async () => {
+    const amount = parseFloat(paymentAmount);
+    if (!amount || amount <= 0) {
+      alert("Por favor, insira um valor válido.");
+      return;
+    }
+
+    try {
+      await addDoc(collection(db, 'establishment_payments'), {
+        establishmentId: auth.currentUser.uid,
+        establishmentName: auth.currentUser.displayName || 'Lojista',
+        amount: amount,
+        status: 'pending',
+        createdAt: serverTimestamp()
+      });
+
+      alert("Notificação de pagamento enviada! O administrador irá conferir e aprovar em breve.");
+      setShowPaymentModal(false);
+      setPaymentAmount('');
+    } catch (error) {
+      console.error(error);
+      alert("Erro ao enviar notificação.");
+    }
+  };
+
   if (loading) return (
     <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', color: 'var(--primary)' }}>
       <div style={{ width: '40px', height: '40px', border: '4px solid var(--primary-light)', borderTopColor: 'var(--primary)', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
@@ -124,8 +152,8 @@ export default function EstablishmentWalletScreen() {
         <div style={{ fontSize: '2.5rem', fontWeight: '800', marginBottom: '8px' }}>R$ {wallet.pendingDebt.toFixed(2).replace('.', ',')}</div>
         <div style={{ fontSize: '0.8rem', opacity: 0.8, marginTop: '16px' }}>Inclui repasses aos entregadores (100%) + Taxa da Plataforma (10%)</div>
         
-        <button className="btn" style={{ marginTop: '24px', width: '100%', height: '48px', background: 'rgba(255,255,255,0.2)', color: 'white', border: '2px solid white', borderRadius: '12px', fontWeight: '700', cursor: 'pointer' }} onClick={() => alert('Por favor, faça um PIX para a chave CNPJ da plataforma e envie o comprovante no WhatsApp de suporte.')}>
-          Informar Pagamento
+        <button className="btn" style={{ marginTop: '24px', width: '100%', height: '48px', background: 'rgba(255,255,255,0.2)', color: 'white', border: '2px solid white', borderRadius: '12px', fontWeight: '700', cursor: 'pointer' }} onClick={() => setShowPaymentModal(true)}>
+          Informar Pagamento (PIX)
         </button>
       </div>
 
@@ -141,6 +169,30 @@ export default function EstablishmentWalletScreen() {
             <span style={{ fontSize: '0.75rem', fontWeight: '800', textTransform: 'uppercase' }}>Já Pago</span>
           </div>
           <div style={{ fontSize: '1.5rem', fontWeight: '800' }}>R$ {wallet.totalPaid.toFixed(2).replace('.', ',')}</div>
+        </div>
+      </div>
+
+      <div style={{ marginBottom: '24px' }}>
+        <h3 style={{ marginBottom: '16px', fontSize: '1.1rem', paddingLeft: '4px' }}>Histórico de Pagamentos</h3>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '200px', overflowY: 'auto', padding: '4px' }}>
+          {paymentsList.map((p) => (
+            <div key={p.id} className="card" style={{ padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <div style={{ fontWeight: '700', fontSize: '0.9rem' }}>R$ {parseFloat(p.amount).toFixed(2)}</div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{p.date.toLocaleDateString()}</div>
+              </div>
+              <span style={{ 
+                fontSize: '0.7rem', fontWeight: 'bold', padding: '4px 8px', borderRadius: '12px',
+                backgroundColor: p.status === 'approved' ? '#d4edda' : p.status === 'pending' ? '#fff3cd' : '#f8d7da',
+                color: p.status === 'approved' ? '#155724' : p.status === 'pending' ? '#856404' : '#721c24'
+              }}>
+                {p.status === 'approved' ? 'APROVADO' : p.status === 'pending' ? 'PENDENTE' : 'REJEITADO'}
+              </span>
+            </div>
+          ))}
+          {paymentsList.length === 0 && (
+            <div style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '10px', fontSize: '0.9rem' }}>Nenhum pagamento registrado.</div>
+          )}
         </div>
       </div>
 
@@ -164,6 +216,26 @@ export default function EstablishmentWalletScreen() {
           )}
         </div>
       </div>
+
+      {showPaymentModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.8)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+          <div className="card fade-in" style={{ width: '100%', maxWidth: '360px', padding: '30px', textAlign: 'center' }}>
+            <h3 style={{ marginBottom: '20px' }}>Informar Pagamento</h3>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '20px' }}>Após realizar o PIX para a plataforma, informe o valor exato pago abaixo.</p>
+            <input 
+              type="number" 
+              placeholder="R$ 0,00" 
+              value={paymentAmount}
+              onChange={(e) => setPaymentAmount(e.target.value)}
+              style={{ width: '100%', height: '54px', borderRadius: '16px', border: '2px solid var(--border)', textAlign: 'center', fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '24px' }}
+            />
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button className="btn" style={{ flex: 1, backgroundColor: 'var(--surface)', color: 'var(--text)' }} onClick={() => setShowPaymentModal(false)}>Cancelar</button>
+              <button className="btn" style={{ flex: 1 }} onClick={handleSendPaymentNotification}>Enviar</button>
+            </div>
+          </div>
+        </div>
+      )}
       
     </div>
   );

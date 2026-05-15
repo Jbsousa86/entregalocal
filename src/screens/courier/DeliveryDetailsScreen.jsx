@@ -165,7 +165,11 @@ export default function DeliveryDetailsScreen() {
   };
 
   const selectedCount = Object.keys(selectedDeliveries).filter((k) => selectedDeliveries[k]).length;
-  const surchargePreview = Number(baseGroupFee || 0) + Math.max(0, selectedCount - 1) * 1;
+  // Calculate total: First order is full value, subsequent orders add +R$ 1.00 each
+  let surchargePreview = 0;
+  if (delivery) {
+    surchargePreview = Number(delivery.value || 0) + Math.max(0, selectedCount - 1) * 1;
+  }
 
   const acceptDelivery = async (deliveriesToAccept) => {
     if (!auth.currentUser) return;
@@ -199,26 +203,26 @@ export default function DeliveryDetailsScreen() {
           deliveryDocs.push({ ref: deliveryRef, doc: deliveryDoc });
         }
 
-        // Calcular taxa: valor padrão do admin + R$1 por pedido adicional
-        const adminBase = Number(baseGroupFee || 0);
-        const surchargePerOrder = adminBase + Math.max(0, groupSize - 1) * 1;
-
         for (const { ref, doc: deliveryDoc } of deliveryDocs) {
           if (!deliveryDoc.exists()) {
             throw new Error('Uma das entregas do grupo não foi encontrada.');
           }
-
           if (deliveryDoc.data().status !== 'pending') {
             throw new Error('Uma das entregas do grupo já foi aceita por outro entregador.');
           }
-
           if (deliveryDoc.data().establishmentId !== delivery.establishmentId) {
             throw new Error('Todas as entregas do grupo devem ser do mesmo estabelecimento.');
           }
         }
 
+        let isFirst = true;
+
         for (const { ref, doc: deliveryDoc } of deliveryDocs) {
+          // O primeiro pedido do grupo mantém o valor cheio (base admin)
+          // Os 2º e 3º pedidos ganham +1 apenas. Atualizamos o "value" do Firestore para garantir isso na carteira.
           const originalValue = Number(deliveryDoc.data().value || 0);
+          const finalGroupedValue = isFirst ? originalValue : 1.00;
+
           transaction.update(ref, {
             status: 'accepted',
             courierId: auth.currentUser.uid,
@@ -226,9 +230,12 @@ export default function DeliveryDetailsScreen() {
             groupId,
             groupSize,
             pickupCode,
-            groupFee: surchargePerOrder,
-            chargedValue: originalValue + surchargePerOrder
+            value: finalGroupedValue,
+            chargedValue: finalGroupedValue,
+            originalValue: originalValue
           });
+          
+          isFirst = false;
         }
       });
 
@@ -406,7 +413,7 @@ export default function DeliveryDetailsScreen() {
 
             <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginBottom: '6px' }}>Taxa por pedido: R$ {surchargePreview.toFixed(2).replace('.', ',')}</div>
+                <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginBottom: '6px' }}>Total a receber pelo grupo: R$ {surchargePreview.toFixed(2).replace('.', ',')}</div>
                 <button
                   onClick={handleConfirmSelection}
                   disabled={loading}

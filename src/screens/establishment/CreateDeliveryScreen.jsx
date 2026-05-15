@@ -7,9 +7,11 @@ import { auth, db } from '../../firebaseClient';
 export default function CreateDeliveryScreen() {
   const navigate = useNavigate();
   const [pickupAddress, setPickupAddress] = useState('');
-  const [deliveryAddress, setDeliveryAddress] = useState('');
+  const [customerName, setCustomerName] = useState('');
+  const [street, setStreet] = useState('');
+  const [neighborhood, setNeighborhood] = useState('');
+  const [reference, setReference] = useState('');
   const [establishmentName, setEstablishmentName] = useState('');
-  const [observation, setObservation] = useState('');
   const [value, setValue] = useState('2.00');
   const [loading, setLoading] = useState(false);
   const [loadingProfile, setLoadingProfile] = useState(true);
@@ -46,21 +48,25 @@ export default function CreateDeliveryScreen() {
   }, [navigate]);
 
   const handlePublish = async () => {
-    if (!pickupAddress || !deliveryAddress) {
-      alert('Preencha os endereços de entrega.');
+    if (!pickupAddress || !customerName || !street || !neighborhood) {
+      alert('Preencha todos os campos obrigatórios.');
       return;
     }
 
     setLoading(true);
     try {
       const pickupCode = Math.floor(1000 + Math.random() * 9000).toString();
+      const deliveryAddress = `${street}, ${neighborhood}${reference ? ' - ' + reference : ''}`;
 
       await addDoc(collection(db, 'deliveries'), {
         establishmentId: auth.currentUser.uid,
         establishmentName,
         pickupAddress,
         deliveryAddress,
-        observation,
+        customerName,
+        street,
+        neighborhood,
+        reference,
         value: parseFloat(value),
         pickupCode,
         status: 'pending',
@@ -78,16 +84,28 @@ export default function CreateDeliveryScreen() {
   const handleImportWhatsApp = () => {
     if (!pastedText) return;
 
-    const addressMatch = pastedText.match(/(?:Endereço|Entrega|Local|Rua|Av):\s*(.*)|(Rua\s.*|Av\s.*|Pça\s.*)/i);
-    if (addressMatch) {
-      setDeliveryAddress(addressMatch[1] || addressMatch[2] || '');
+    // Tentar extrair nome do cliente (geralmente começa com "Olá", "Sr.", "Dra.", etc ou após "Cliente:" ou "Nome:")
+    const nameMatch = pastedText.match(/(?:Cliente|Nome|Entrega para|Para|Destinatário):\s*([^\n,]+)|^([A-Z][a-záàâãéèêíïóôõöúçñ\s]+)(?:\n|,)/mi);
+    if (nameMatch) {
+      setCustomerName(nameMatch[1] || nameMatch[2] || '');
     }
 
-    const orderMatch = pastedText.match(/(?:Pedido|Itens|Produtos):\s*([\s\S]*?)(?:\n\n|Total:|$)/i);
-    if (orderMatch) {
-      setObservation(orderMatch[1].trim());
-    } else if (pastedText.length > 0) {
-      setObservation(pastedText.substring(0, 200) + (pastedText.length > 200 ? '...' : ''));
+    // Tentar extrair endereço (Rua, Avenida, Travessa, etc)
+    const streetMatch = pastedText.match(/(Rua|Avenida|Av|Travessa|Trav|Pça|Praça|Alameda|Estrada|Estr)\s+([^,\n]+)/i);
+    if (streetMatch) {
+      setStreet((streetMatch[1] + ' ' + streetMatch[2]).trim());
+    }
+
+    // Tentar extrair bairro (após "Bairro:", no final do endereço, ou antes do número do CEP)
+    const neighborhoodMatch = pastedText.match(/(?:Bairro|Bdo|Bd):\s*([^\n,]+)|,\s*([A-Z][a-záàâãéèêíïóôõöúçñ\s]+)(?:\s*-\s*[A-Z]{2}|,|\n|$)/i);
+    if (neighborhoodMatch) {
+      setNeighborhood(neighborhoodMatch[1] || neighborhoodMatch[2] || '');
+    }
+
+    // Tentar extrair referência/complemento
+    const referenceMatch = pastedText.match(/(?:Referência|Ref|Complemento|Apto|Apt|Casa|Sala|Loja|Bloco):\s*([^\n]+)|(?:próximo|junto|perto|em frente|ao lado|acima|abaixo)\s+(?:de|do|da|dos|das)?\s+([^\n]+)/i);
+    if (referenceMatch) {
+      setReference(referenceMatch[1] || referenceMatch[2] || '');
     }
 
     setShowPastedInput(false);
@@ -202,21 +220,43 @@ export default function CreateDeliveryScreen() {
         </div>
 
         <div className="form-group">
-          <label>Endereço de Entrega</label>
-          <div style={{ position: 'relative' }}>
-            <input 
-              type="text" 
-              placeholder="Para onde vamos entregar?" 
-              value={deliveryAddress} 
-              onChange={e => setDeliveryAddress(e.target.value)}
-              style={{ paddingLeft: '44px' }}
-            />
-            <div style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--accent)' }}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10"/><path d="m16 12-4-4-4 4m4 4v-8"/>
-              </svg>
-            </div>
-          </div>
+          <label>Nome do Cliente</label>
+          <input 
+            type="text" 
+            placeholder="Ex: João Silva" 
+            value={customerName} 
+            onChange={e => setCustomerName(e.target.value)}
+          />
+        </div>
+
+        <div className="form-group">
+          <label>Bairro</label>
+          <input 
+            type="text" 
+            placeholder="Ex: Centro" 
+            value={neighborhood} 
+            onChange={e => setNeighborhood(e.target.value)}
+          />
+        </div>
+
+        <div className="form-group">
+          <label>Rua</label>
+          <input 
+            type="text" 
+            placeholder="Ex: Rua das Flores, 123" 
+            value={street} 
+            onChange={e => setStreet(e.target.value)}
+          />
+        </div>
+
+        <div className="form-group">
+          <label>Referência</label>
+          <input 
+            type="text" 
+            placeholder="Ex: Em frente ao supermercado" 
+            value={reference} 
+            onChange={e => setReference(e.target.value)}
+          />
         </div>
 
         <div className="form-group">

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { collection, getDocs, doc, updateDoc } from 'firebase/firestore';
+import { collection, getDocs, doc, updateDoc, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../firebaseClient';
 import { useNavigate } from 'react-router-dom';
 
@@ -10,6 +10,8 @@ export default function AdminEstablishmentReport() {
     const [allDeliveries, setAllDeliveries] = useState([]);
     const [filter, setFilter] = useState('today');
     const [loading, setLoading] = useState(true);
+    const [establishmentPayments, setEstablishmentPayments] = useState([]);
+    const [paymentAmount, setPaymentAmount] = useState({});
     const navigate = useNavigate();
 
     const calculateStats = (deliveries, currentFilter) => {
@@ -77,6 +79,13 @@ export default function AdminEstablishmentReport() {
                         estMap[id].value = baseStats.establishments[id].value;
                     }
                 });
+
+                const pSnapshot = await getDocs(collection(db, 'establishment_payments'));
+                const pList = [];
+                pSnapshot.forEach(docSnap => {
+                    pList.push({ id: docSnap.id, ...docSnap.data() });
+                });
+                setEstablishmentPayments(pList);
 
                 setStats({ establishments: estMap });
             } catch (error) {
@@ -147,6 +156,28 @@ export default function AdminEstablishmentReport() {
         } catch (error) {
             console.error(error);
             alert('Erro ao alterar status de bloqueio.');
+        }
+    const handleRecordPayment = async (estId) => {
+        try {
+            const amount = parseFloat(paymentAmount[estId]);
+            if (isNaN(amount) || amount <= 0) {
+                alert("Por favor, insira um valor válido.");
+                return;
+            }
+
+            await addDoc(collection(db, 'establishment_payments'), {
+                establishmentId: estId,
+                amount: amount,
+                status: 'approved',
+                createdAt: serverTimestamp()
+            });
+
+            setEstablishmentPayments(prev => [...prev, { establishmentId: estId, amount: amount, status: 'approved' }]);
+            setPaymentAmount(prev => ({ ...prev, [estId]: '' }));
+            alert("Pagamento registrado com sucesso!");
+        } catch (error) {
+            console.error("Erro ao registrar pagamento:", error);
+            alert("Erro ao registrar pagamento.");
         }
     };
 
@@ -275,6 +306,69 @@ export default function AdminEstablishmentReport() {
                                     </td>
                                 </tr>
                             )}
+                        </tbody>
+                    </table>
+                </div>
+            <div className="card" style={{ padding: '15px', marginTop: '30px' }}>
+                <h3 className="mb-4" style={{ fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    💰 Gestão de Dívidas e Acertos
+                </h3>
+                <div style={{ overflowX: 'auto' }}>
+                    <table className="admin-table">
+                        <thead>
+                            <tr>
+                                <th>Lojista</th>
+                                <th>Total Devido (110%)</th>
+                                <th>Total Pago</th>
+                                <th>Saldo Devedor</th>
+                                <th>Registrar Pagamento (R$)</th>
+                                <th>Ação</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {Object.entries(stats.establishments).map(([id, est]) => {
+                                const totalDebt = est.value * 1.10;
+                                const totalPaid = establishmentPayments
+                                    .filter(p => p.establishmentId === id && p.status === 'approved')
+                                    .reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
+                                const pending = Math.max(0, totalDebt - totalPaid);
+
+                                return (
+                                    <tr key={id}>
+                                        <td style={{ fontWeight: 'bold' }}>{est.name}</td>
+                                        <td style={{ color: 'var(--error)', fontWeight: 'bold' }}>R$ {totalDebt.toFixed(2)}</td>
+                                        <td style={{ color: 'var(--success)', fontWeight: 'bold' }}>R$ {totalPaid.toFixed(2)}</td>
+                                        <td>
+                                            <span style={{
+                                                padding: '4px 8px',
+                                                borderRadius: '8px',
+                                                backgroundColor: pending > 0 ? '#fff3cd' : '#d4edda',
+                                                color: pending > 0 ? '#856404' : '#155724',
+                                                fontWeight: 'bold'
+                                            }}>
+                                                R$ {pending.toFixed(2)}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <input 
+                                                type="number" 
+                                                placeholder="0.00"
+                                                value={paymentAmount[id] || ''}
+                                                onChange={(e) => setPaymentAmount(prev => ({ ...prev, [id]: e.target.value }))}
+                                                style={{ width: '100px', padding: '6px', borderRadius: '4px', border: '1px solid var(--border)' }}
+                                            />
+                                        </td>
+                                        <td>
+                                            <button 
+                                                onClick={() => handleRecordPayment(id)}
+                                                style={{ background: 'var(--success)', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '8px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}
+                                            >
+                                                Baixar
+                                            </button>
+                                        </td>
+                                    </tr>
+                                );
+                            })}
                         </tbody>
                     </table>
                 </div>

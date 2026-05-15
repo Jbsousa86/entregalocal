@@ -8,6 +8,7 @@ export default function CreateDeliveryScreen() {
   const navigate = useNavigate();
   const [pickupAddress, setPickupAddress] = useState('');
   const [customerName, setCustomerName] = useState('');
+  const [customerPhone, setCustomerPhone] = useState('');
   const [street, setStreet] = useState('');
   const [neighborhood, setNeighborhood] = useState('');
   const [reference, setReference] = useState('');
@@ -65,6 +66,7 @@ export default function CreateDeliveryScreen() {
         pickupAddress,
         deliveryAddress,
         customerName,
+        customerPhone,
         street,
         neighborhood,
         reference,
@@ -90,6 +92,12 @@ export default function CreateDeliveryScreen() {
     const nameMatch = pastedText.match(/(?:Cliente|Nome|Entrega para|Para|Destinatário):\s*([^\n,]+)|^([A-Z][a-záàâãéèêíïóôõöúçñ\s]+)(?:\n|,)/mi);
     if (nameMatch) {
       setCustomerName(nameMatch[1] || nameMatch[2] || '');
+    }
+
+    // Tentar extrair telefone
+    const phoneMatch = pastedText.match(/(?:Telefone|Tel|Celular|Cel|WhatsApp|Whats|Contato):\s*([\d\s\-\(\)\+]{8,20})/i);
+    if (phoneMatch) {
+      setCustomerPhone(phoneMatch[1].trim());
     }
 
     // Tentar extrair endereço (Rua, Avenida, Travessa, etc)
@@ -228,6 +236,16 @@ export default function CreateDeliveryScreen() {
             placeholder="Ex: João Silva" 
             value={customerName} 
             onChange={e => setCustomerName(e.target.value)}
+          />
+        </div>
+
+        <div className="form-group">
+          <label>Telefone do Cliente (Opcional)</label>
+          <input 
+            type="tel" 
+            placeholder="Ex: (84) 99999-9999" 
+            value={customerPhone} 
+            onChange={e => setCustomerPhone(e.target.value)}
           />
         </div>
 

@@ -157,6 +157,8 @@ export default function AdminEstablishmentReport() {
             console.error(error);
             alert('Erro ao alterar status de bloqueio.');
         }
+    };
+
     const handleRecordPayment = async (estId) => {
         try {
             const amount = parseFloat(paymentAmount[estId]);
@@ -172,8 +174,9 @@ export default function AdminEstablishmentReport() {
                 createdAt: serverTimestamp()
             });
 
-            setEstablishmentPayments(prev => [...prev, { establishmentId: estId, amount: amount, status: 'approved' }]);
-            setPaymentAmount(prev => ({ ...prev, [estId]: '' }));
+            const newPayment = { establishmentId: estId, amount: amount, status: 'approved', createdAt: { toDate: () => new Date() } };
+            setEstablishmentPayments(prev => [newPayment, ...prev]);
+            setPaymentAmount(prev => ({ ...prev, [id]: '' }));
             alert("Pagamento registrado com sucesso!");
         } catch (error) {
             console.error("Erro ao registrar pagamento:", error);
@@ -299,16 +302,11 @@ export default function AdminEstablishmentReport() {
                                     </td>
                                 </tr>
                             ))}
-                            {Object.entries(stats.establishments).length === 0 && (
-                                <tr>
-                                    <td colSpan="6" style={{ padding: '20px', textAlign: 'center', color: '#666' }}>
-                                        Nenhum lojista cadastrado encontrado.
-                                    </td>
-                                </tr>
-                            )}
                         </tbody>
                     </table>
                 </div>
+            </div>
+
             <div className="card" style={{ padding: '15px', marginTop: '30px' }}>
                 <h3 className="mb-4" style={{ fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
                     💰 Gestão de Dívidas e Acertos
@@ -369,6 +367,99 @@ export default function AdminEstablishmentReport() {
                                     </tr>
                                 );
                             })}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div className="card" style={{ padding: '15px', marginTop: '30px' }}>
+                <h3 className="mb-4" style={{ fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    📜 Histórico de Pagamentos Recentes
+                </h3>
+                <div style={{ overflowX: 'auto' }}>
+                    <table className="admin-table">
+                        <thead>
+                            <tr>
+                                <th>Data</th>
+                                <th>Lojista</th>
+                                <th>Valor Pago</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {establishmentPayments.slice().sort((a,b) => {
+                                const da = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt?.seconds * 1000 || 0);
+                                const db = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(b.createdAt?.seconds * 1000 || 0);
+                                return db - da;
+                            }).slice(0, 10).map((p, i) => {
+                                const date = p.createdAt?.toDate ? p.createdAt.toDate() : new Date(p.createdAt?.seconds * 1000 || 0);
+                                const estName = stats.establishments[p.establishmentId]?.name || 'Lojista';
+                                return (
+                                    <tr key={i}>
+                                        <td>{date.toLocaleDateString('pt-BR')} {date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</td>
+                                        <td>{estName}</td>
+                                        <td style={{ color: 'var(--success)', fontWeight: 'bold' }}>R$ {parseFloat(p.amount).toFixed(2)}</td>
+                                        <td><span style={{ color: 'var(--success)', fontSize: '12px', fontWeight: 'bold' }}>APROVADO</span></td>
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div className="card" style={{ padding: '15px', marginTop: '30px' }}>
+                <h3 className="mb-4" style={{ fontSize: '1.2rem' }}>📝 Detalhamento de Entregas (Lojistas)</h3>
+                <div style={{ overflowX: 'auto' }}>
+                    <table className="admin-table">
+                        <thead>
+                            <tr>
+                                <th>Data/Hora</th>
+                                <th>Lojista</th>
+                                <th>Entregador</th>
+                                <th>Valor</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {allDeliveries
+                                .filter(d => {
+                                    if (filter === 'all') return true;
+                                    const dateSource = (d.status === 'delivered' && d.completedAt) ? d.completedAt : d.createdAt;
+                                    if (!dateSource) return false;
+                                    const deliveryDate = dateSource.toDate ? dateSource.toDate() : new Date(dateSource.seconds ? dateSource.seconds * 1000 : dateSource);
+                                    const now = new Date();
+                                    if (filter === 'today') return deliveryDate >= new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                                    if (filter === 'week') return deliveryDate >= new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+                                    if (filter === 'month') return deliveryDate >= new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+                                    return true;
+                                })
+                                .sort((a,b) => {
+                                    const ta = (a.completedAt || a.createdAt)?.seconds || 0;
+                                    const tb = (b.completedAt || b.createdAt)?.seconds || 0;
+                                    return tb - ta;
+                                })
+                                .slice(0, 50)
+                                .map((d, i) => {
+                                    const ds = d.completedAt || d.createdAt;
+                                    const date = ds?.toDate ? ds.toDate() : new Date(ds?.seconds * 1000 || 0);
+                                    return (
+                                        <tr key={i} style={{ fontSize: '13px' }}>
+                                            <td>{date.toLocaleDateString('pt-BR')} {date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</td>
+                                            <td style={{ fontWeight: 'bold' }}>{d.establishmentName}</td>
+                                            <td>{d.courierName || '---'}</td>
+                                            <td style={{ fontWeight: 'bold' }}>R$ {parseFloat(d.value).toFixed(2)}</td>
+                                            <td>
+                                                <span style={{ 
+                                                    padding: '2px 6px', 
+                                                    borderRadius: '4px', 
+                                                    fontSize: '11px',
+                                                    backgroundColor: d.status === 'delivered' ? '#d4edda' : '#eee' 
+                                                }}>{d.status}</span>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
                         </tbody>
                     </table>
                 </div>

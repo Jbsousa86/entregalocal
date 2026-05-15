@@ -322,6 +322,106 @@ export default function AdminCourierReport() {
                         </table>
                     </div>
                 </div>
+
+                <div className="card" style={{ padding: '15px', marginTop: '30px' }}>
+                    <h3 className="mb-4" style={{ fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        📜 Histórico de Saques (Últimos 20)
+                    </h3>
+                    <div style={{ overflowX: 'auto' }}>
+                        <table className="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>Data</th>
+                                    <th>Entregador</th>
+                                    <th>Valor</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {withdrawals.slice(0, 20).map((w, i) => {
+                                    const ds = w.createdAt;
+                                    const date = ds?.toDate ? ds.toDate() : (ds?.seconds ? new Date(ds.seconds * 1000) : new Date(0));
+                                    const courierName = stats.couriers[w.courierId]?.name || 'Entregador';
+                                    return (
+                                        <tr key={i}>
+                                            <td>{date.toLocaleDateString('pt-BR')} {date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</td>
+                                            <td style={{ fontWeight: 'bold' }}>{courierName}</td>
+                                            <td style={{ color: 'var(--primary)', fontWeight: 'bold' }}>R$ {parseFloat(w.amount || 0).toFixed(2)}</td>
+                                            <td>
+                                                <span style={{
+                                                    padding: '2px 8px',
+                                                    borderRadius: '12px',
+                                                    fontSize: '11px',
+                                                    backgroundColor: w.status === 'completed' ? '#d4edda' : w.status === 'pending' ? '#fff3cd' : '#f8d7da',
+                                                    color: w.status === 'completed' ? '#155724' : w.status === 'pending' ? '#856404' : '#721c24'
+                                                }}>
+                                                    {w.status === 'completed' ? 'CONCLUÍDO' : w.status === 'pending' ? 'PENDENTE' : 'REJEITADO'}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div className="card" style={{ padding: '15px', marginTop: '30px' }}>
+                    <h3 className="mb-4" style={{ fontSize: '1.2rem' }}>📝 Detalhamento de Entregas (Entregadores)</h3>
+                    <div style={{ overflowX: 'auto' }}>
+                        <table className="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>Data/Hora</th>
+                                    <th>Entregador</th>
+                                    <th>Estabelecimento</th>
+                                    <th>Valor</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {allDeliveries
+                                    .filter(d => {
+                                        if (filter === 'all') return true;
+                                        const dateSource = (d.status === 'delivered' && d.completedAt) ? d.completedAt : d.createdAt;
+                                        if (!dateSource) return false;
+                                        const deliveryDate = dateSource.toDate ? dateSource.toDate() : new Date(dateSource.seconds ? dateSource.seconds * 1000 : dateSource);
+                                        const now = new Date();
+                                        if (filter === 'today') return deliveryDate >= new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                                        if (filter === 'week') return deliveryDate >= new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+                                        if (filter === 'month') return deliveryDate >= new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+                                        return true;
+                                    })
+                                    .sort((a,b) => {
+                                        const ta = (a.completedAt || a.createdAt)?.seconds || 0;
+                                        const tb = (b.completedAt || b.createdAt)?.seconds || 0;
+                                        return tb - ta;
+                                    })
+                                    .slice(0, 50)
+                                    .map((d, i) => {
+                                        const ds = d.completedAt || d.createdAt;
+                                        const date = ds?.toDate ? ds.toDate() : new Date(ds?.seconds * 1000 || 0);
+                                        return (
+                                            <tr key={i} style={{ fontSize: '13px' }}>
+                                                <td>{date.toLocaleDateString('pt-BR')} {date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</td>
+                                                <td style={{ fontWeight: 'bold' }}>{d.courierName || '---'}</td>
+                                                <td>{d.establishmentName}</td>
+                                                <td style={{ fontWeight: 'bold' }}>R$ {parseFloat(d.value).toFixed(2)}</td>
+                                                <td>
+                                                    <span style={{ 
+                                                        padding: '2px 6px', 
+                                                        borderRadius: '4px', 
+                                                        fontSize: '11px',
+                                                        backgroundColor: d.status === 'delivered' ? '#d4edda' : '#eee' 
+                                                    }}>{d.status}</span>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
 
             {/* Modal de Análise de Saque */}

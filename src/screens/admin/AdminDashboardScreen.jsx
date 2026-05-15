@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { collection, getDocs, doc, getDoc, updateDoc } from 'firebase/firestore';
+import { collection, getDocs, doc, getDoc, updateDoc, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db, auth } from '../../firebaseClient';
 import { useNavigate } from 'react-router-dom';
 
@@ -21,6 +21,8 @@ export default function AdminDashboardScreen() {
     const [filter, setFilter] = useState('today');
     const [loading, setLoading] = useState(true);
     const [selectedWithdrawal, setSelectedWithdrawal] = useState(null);
+    const [establishmentPayments, setEstablishmentPayments] = useState([]);
+    const [paymentAmount, setPaymentAmount] = useState({});
     const navigate = useNavigate();
 
     const calculateStats = (deliveries, currentFilter) => {
@@ -136,6 +138,14 @@ export default function AdminDashboardScreen() {
                     baseStats.establishments[estId].deliveryFee = establishmentMap[estId].deliveryFee || 2.00;
                 });
 
+                // Fetch establishment payments
+                const pSnapshot = await getDocs(collection(db, 'establishment_payments'));
+                const pList = [];
+                pSnapshot.forEach(docSnap => {
+                    pList.push({ id: docSnap.id, ...docSnap.data() });
+                });
+                setEstablishmentPayments(pList);
+
                 setStats({
                     ...baseStats,
                     totalEstablishments: Object.keys(establishmentMap).length,
@@ -241,6 +251,31 @@ export default function AdminDashboardScreen() {
         } catch (error) {
             console.error("Erro ao atualizar saque:", error);
             alert("Erro ao atualizar status do saque.");
+        }
+    };
+
+    const handleRecordPayment = async (estId) => {
+        try {
+            const amount = parseFloat(paymentAmount[estId]);
+            if (isNaN(amount) || amount <= 0) {
+                alert("Por favor, insira um valor válido.");
+                return;
+            }
+
+            await addDoc(collection(db, 'establishment_payments'), {
+                establishmentId: estId,
+                amount: amount,
+                status: 'approved',
+                createdAt: serverTimestamp()
+            });
+
+            // Update local state
+            setEstablishmentPayments(prev => [...prev, { establishmentId: estId, amount: amount, status: 'approved' }]);
+            setPaymentAmount(prev => ({ ...prev, [estId]: '' }));
+            alert("Pagamento registrado com sucesso!");
+        } catch (error) {
+            console.error("Erro ao registrar pagamento:", error);
+            alert("Erro ao registrar pagamento.");
         }
     };
 
@@ -478,6 +513,80 @@ export default function AdminDashboardScreen() {
                                     <td colSpan="6" style={{ padding: '20px', textAlign: 'center', color: '#666' }}>Nenhuma solicitação de saque encontrada.</td>
                                 </tr>
                             )}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            {/* Controle de Lojistas (Dívidas e Pagamentos) */}
+            <div className="card" style={{ padding: '15px', marginTop: '20px' }}>
+                <h3 className="mb-4" style={{ fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    🏪 Controle de Lojistas (Dívidas e Acertos)
+                </h3>
+                <div style={{ overflowX: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '900px' }}>
+                        <thead>
+                            <tr style={{ borderBottom: '2px solid var(--border)', textAlign: 'left' }}>
+                                <th style={{ padding: '10px' }}>Lojista</th>
+                                <th style={{ padding: '10px' }}>Total Entregas</th>
+                                <th style={{ padding: '10px' }}>Total Devido (110%)</th>
+                                <th style={{ padding: '10px' }}>Total Pago</th>
+                                <th style={{ padding: '10px' }}>Saldo Devedor</th>
+                                <th style={{ padding: '10px' }}>Registrar Pagamento (R$)</th>
+                                <th style={{ padding: '10px' }}>Ação</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {Object.entries(stats.establishments).map(([id, data]) => {
+                                // Calculate total debt for this establishment (110% of their deliveries)
+                                const estDeliveries = allDeliveries.filter(d => d.establishmentId === id && d.status === 'delivered');
+                                const totalDeliveryValue = estDeliveries.reduce((sum, d) => sum + (parseFloat(d.value) || 0), 0);
+                                const totalDebt = totalDeliveryValue * 1.10;
+
+                                // Calculate total paid
+                                const totalPaid = establishmentPayments
+                                    .filter(p => p.establishmentId === id && p.status === 'approved')
+                                    .reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
+                                
+                                const pending = Math.max(0, totalDebt - totalPaid);
+
+                                return (
+                                    <tr key={id} style={{ borderBottom: '1px solid var(--border)', fontSize: '14px' }}>
+                                        <td style={{ padding: '10px', fontWeight: 'bold' }}>{data.name}</td>
+                                        <td style={{ padding: '10px' }}>{estDeliveries.length} corridas</td>
+                                        <td style={{ padding: '10px', color: 'var(--error)', fontWeight: 'bold' }}>R$ {totalDebt.toFixed(2)}</td>
+                                        <td style={{ padding: '10px', color: 'var(--success)', fontWeight: 'bold' }}>R$ {totalPaid.toFixed(2)}</td>
+                                        <td style={{ padding: '10px' }}>
+                                            <span style={{
+                                                padding: '4px 8px',
+                                                borderRadius: '8px',
+                                                backgroundColor: pending > 0 ? '#fff3cd' : '#d4edda',
+                                                color: pending > 0 ? '#856404' : '#155724',
+                                                fontWeight: 'bold'
+                                            }}>
+                                                R$ {pending.toFixed(2)}
+                                            </span>
+                                        </td>
+                                        <td style={{ padding: '10px' }}>
+                                            <input 
+                                                type="number" 
+                                                placeholder="0.00"
+                                                value={paymentAmount[id] || ''}
+                                                onChange={(e) => setPaymentAmount(prev => ({ ...prev, [id]: e.target.value }))}
+                                                style={{ width: '100px', padding: '6px', borderRadius: '4px', border: '1px solid var(--border)' }}
+                                            />
+                                        </td>
+                                        <td style={{ padding: '10px' }}>
+                                            <button 
+                                                onClick={() => handleRecordPayment(id)}
+                                                style={{ background: 'var(--success)', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '8px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}
+                                            >
+                                                Baixar Valor
+                                            </button>
+                                        </td>
+                                    </tr>
+                                );
+                            })}
                         </tbody>
                     </table>
                 </div>

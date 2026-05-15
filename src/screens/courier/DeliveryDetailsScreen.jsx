@@ -400,96 +400,52 @@ export default function DeliveryDetailsScreen() {
             animation: 'slideUp 0.3s ease'
           }}>
             <h3 style={{ fontSize: '1.1rem', fontWeight: '800', marginBottom: '12px', marginTop: 0 }}>
-              Selecionar pedidos para agrupar
+              Outros pedidos disponíveis
             </h3>
             <p style={{ color: 'var(--text-muted)', marginBottom: '12px' }}>
-              Selecione até 3 pedidos do mesmo estabelecimento (inclui este pedido).
+              Clique em Aceitar para aceitar um pedido individual.
             </p>
 
             <div style={{ maxHeight: '240px', overflow: 'auto', marginBottom: '16px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '8px 0', borderBottom: '1px solid var(--border)' }}>
-                <input type="checkbox" checked={!!selectedDeliveries[delivery.id]} onChange={() => toggleDeliverySelection(delivery.id)} />
                 <div style={{ flex: 1 }}>
                   <div style={{ fontWeight: '700' }}>Este pedido</div>
                   <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{delivery.deliveryAddress}</div>
                 </div>
-                <div style={{ display: 'flex', gap: '8px' }}>
+                <button
+                  onClick={() => acceptSingleById(delivery.id)}
+                  disabled={loading}
+                  className="btn"
+                  style={{ height: '40px' }}
+                >
+                  Aceitar
+                </button>
+              </div>
+
+              {otherDeliveries.map((d) => (
+                <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '8px 0', borderBottom: '1px solid var(--border)' }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: '700' }}>{d.customerName || 'Pedido'}</div>
+                    <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{d.deliveryAddress}</div>
+                  </div>
                   <button
-                    onClick={() => acceptSingleById(delivery.id)}
+                    onClick={() => acceptSingleById(d.id)}
                     disabled={loading}
                     className="btn"
                     style={{ height: '40px' }}
                   >
                     Aceitar
                   </button>
-
-                  <button
-                    onClick={() => toggleDeliverySelection(delivery.id)}
-                    disabled={loading}
-                    className={!!selectedDeliveries[delivery.id] ? 'btn' : 'btn btn-secondary'}
-                    style={{ height: '40px' }}
-                  >
-                    {selectedDeliveries[delivery.id] ? 'Confirmado' : 'Confirmar pedido'}
-                  </button>
-                </div>
-              </div>
-
-              {otherDeliveries.map((d) => (
-                <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '8px 0', borderBottom: '1px solid var(--border)' }}>
-                  <input type="checkbox" checked={!!selectedDeliveries[d.id]} onChange={() => toggleDeliverySelection(d.id)} />
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: '700' }}>{d.customerName || 'Pedido'}</div>
-                    <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{d.deliveryAddress}</div>
-                  </div>
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <button
-                      onClick={() => acceptSingleById(d.id)}
-                      disabled={loading}
-                      className="btn"
-                      style={{ height: '40px' }}
-                    >
-                      Aceitar
-                    </button>
-
-                    <button
-                      onClick={() => toggleDeliverySelection(d.id)}
-                      disabled={loading}
-                      className={!!selectedDeliveries[d.id] ? 'btn' : 'btn btn-secondary'}
-                      style={{ height: '40px' }}
-                    >
-                      {selectedDeliveries[d.id] ? 'Confirmado' : 'Confirmar pedido'}
-                    </button>
-                  </div>
                 </div>
               ))}
             </div>
 
-            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginBottom: '6px' }}>Total a receber pelo grupo: R$ {surchargePreview.toFixed(2).replace('.', ',')}</div>
-                <button
-                  onClick={handleConfirmSelection}
-                  disabled={loading}
-                  className="btn"
-                  style={{ width: '100%', height: '50px' }}
-                >
-                  {loading ? 'Processando...' : `Confirmar seleção (${selectedCount}/3)`}
-                </button>
-              </div>
-
-              <button
-                onClick={handleAcceptSolo}
-                disabled={loading}
-                className="btn btn-secondary"
-                style={{ height: '50px' }}
-              >
-                Aceitar Apenas Este
-              </button>
-            
+            <div style={{ display: 'flex', gap: '12px' }}>
               <button
                 onClick={() => setShowGroupChoice(false)}
                 disabled={loading}
                 style={{
+                  flex: 1,
                   height: '50px',
                   background: 'transparent',
                   border: '1px solid var(--border)',

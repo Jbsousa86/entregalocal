@@ -164,6 +164,23 @@ export default function DeliveryDetailsScreen() {
     await acceptDelivery([{ id: delivery.id, data: delivery }]);
   };
 
+  const acceptSingleById = async (id) => {
+    setShowGroupChoice(false);
+    let item;
+    if (id === delivery.id) {
+      item = { id: delivery.id, data: delivery };
+    } else {
+      const other = otherDeliveries.find((d) => d.id === id);
+      if (!other) {
+        alert('Pedido não encontrado.');
+        return;
+      }
+      item = { id: other.id, data: other };
+    }
+
+    await acceptDelivery([item]);
+  };
+
   const selectedCount = Object.keys(selectedDeliveries).filter((k) => selectedDeliveries[k]).length;
   // Calculate total: First order is full value, subsequent orders add +R$ 1.00 each
   let surchargePreview = 0;
@@ -396,7 +413,25 @@ export default function DeliveryDetailsScreen() {
                   <div style={{ fontWeight: '700' }}>Este pedido</div>
                   <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{delivery.deliveryAddress}</div>
                 </div>
-                <div style={{ fontWeight: '800', color: 'var(--primary)' }}>R$ {Number(delivery.value).toFixed(2).replace('.', ',')}</div>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button
+                    onClick={() => acceptSingleById(delivery.id)}
+                    disabled={loading}
+                    className="btn"
+                    style={{ height: '40px' }}
+                  >
+                    Aceitar
+                  </button>
+
+                  <button
+                    onClick={() => toggleDeliverySelection(delivery.id)}
+                    disabled={loading}
+                    className={!!selectedDeliveries[delivery.id] ? 'btn' : 'btn btn-secondary'}
+                    style={{ height: '40px' }}
+                  >
+                    {selectedDeliveries[delivery.id] ? 'Confirmado' : 'Confirmar pedido'}
+                  </button>
+                </div>
               </div>
 
               {otherDeliveries.map((d) => (
@@ -406,7 +441,25 @@ export default function DeliveryDetailsScreen() {
                     <div style={{ fontWeight: '700' }}>{d.customerName || 'Pedido'}</div>
                     <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{d.deliveryAddress}</div>
                   </div>
-                  <div style={{ fontWeight: '800', color: 'var(--primary)' }}>R$ {Number(d.value).toFixed(2).replace('.', ',')}</div>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button
+                      onClick={() => acceptSingleById(d.id)}
+                      disabled={loading}
+                      className="btn"
+                      style={{ height: '40px' }}
+                    >
+                      Aceitar
+                    </button>
+
+                    <button
+                      onClick={() => toggleDeliverySelection(d.id)}
+                      disabled={loading}
+                      className={!!selectedDeliveries[d.id] ? 'btn' : 'btn btn-secondary'}
+                      style={{ height: '40px' }}
+                    >
+                      {selectedDeliveries[d.id] ? 'Confirmado' : 'Confirmar pedido'}
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>

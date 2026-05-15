@@ -45,7 +45,7 @@ export default function CourierWalletScreen() {
 
           querySnapshot.forEach((docItem) => {
             const data = docItem.data();
-            const value = Number(data.value || 0);
+            const value = Number(data.value || 0) * 0.9; // Plataforma retém 10%
             totalEarnings += value;
 
             const dateSource = data.completedAt || data.createdAt;

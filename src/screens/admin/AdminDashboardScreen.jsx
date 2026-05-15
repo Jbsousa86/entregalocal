@@ -74,6 +74,9 @@ export default function AdminDashboardScreen() {
         return {
             totalDeliveries: filtered.length,
             totalValue,
+            platformProfit: totalValue * 0.10,
+            courierEarnings: totalValue,
+            amountFromStores: totalValue * 1.10,
             statusCounts,
             establishments,
             couriers,
@@ -393,6 +396,32 @@ export default function AdminDashboardScreen() {
                 </div>
             </div>
 
+            {/* Carteira da Plataforma */}
+            <div className="card" style={{ padding: '24px', marginBottom: '30px', background: 'linear-gradient(135deg, var(--secondary) 0%, var(--secondary-light) 100%)', color: 'white' }}>
+                <h3 style={{ fontSize: '1.2rem', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    💼 Carteira da Plataforma ({filter === 'all' ? 'Sempre' : filter === 'today' ? 'Hoje' : filter === 'week' ? 'Esta Semana' : 'Este Mês'})
+                </h3>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px' }}>
+                    <div style={{ background: 'rgba(255,255,255,0.1)', padding: '20px', borderRadius: '12px' }}>
+                        <div style={{ fontSize: '0.85rem', textTransform: 'uppercase', fontWeight: 'bold', opacity: 0.8 }}>Movimentação das Entregas</div>
+                        <div style={{ fontSize: '1.8rem', fontWeight: 'bold' }}>R$ {stats.totalValue.toFixed(2)}</div>
+                    </div>
+                    <div style={{ background: 'rgba(255,255,255,0.1)', padding: '20px', borderRadius: '12px', borderLeft: '4px solid #f59e0b' }}>
+                        <div style={{ fontSize: '0.85rem', textTransform: 'uppercase', fontWeight: 'bold', opacity: 0.8 }}>Lucro da Plataforma (10%)</div>
+                        <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#fcd34d' }}>R$ {stats.platformProfit.toFixed(2)}</div>
+                    </div>
+                    <div style={{ background: 'rgba(255,255,255,0.1)', padding: '20px', borderRadius: '12px' }}>
+                        <div style={{ fontSize: '0.85rem', textTransform: 'uppercase', fontWeight: 'bold', opacity: 0.8 }}>A Receber das Lojas</div>
+                        <div style={{ fontSize: '1.8rem', fontWeight: 'bold' }}>R$ {stats.amountFromStores.toFixed(2)}</div>
+                        <div style={{ fontSize: '0.75rem', opacity: 0.8, marginTop: '4px' }}>*Entregas (100%) + Taxa (10%)</div>
+                    </div>
+                    <div style={{ background: 'rgba(255,255,255,0.1)', padding: '20px', borderRadius: '12px' }}>
+                        <div style={{ fontSize: '0.85rem', textTransform: 'uppercase', fontWeight: 'bold', opacity: 0.8 }}>A Pagar Entregadores</div>
+                        <div style={{ fontSize: '1.8rem', fontWeight: 'bold' }}>R$ {stats.courierEarnings.toFixed(2)}</div>
+                        <div style={{ fontSize: '0.75rem', opacity: 0.8, marginTop: '4px' }}>*100% do valor da entrega (Saques)</div>
+                    </div>
+                </div>
+            </div>
             {/* Solicitações de Saque */}
             <div className="card" style={{ padding: '15px', marginTop: '20px' }}>
                 <h3 className="mb-4" style={{ fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: '8px' }}>

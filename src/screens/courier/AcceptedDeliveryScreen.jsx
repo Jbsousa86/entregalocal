@@ -60,8 +60,9 @@ export default function AcceptedDeliveryScreen() {
     if (!activeDelivery) return;
 
     if (newStatus === 'in_progress') {
-      if (inputCode !== activeDelivery.pickupCode) {
-        setError('Código de coleta incorreto. Peça o código ao lojista.');
+      const validCodes = groupedDeliveries.map(d => d.pickupCode);
+      if (!validCodes.includes(inputCode)) {
+        setError('Código de coleta incorreto. Peça o código de qualquer uma das entregas deste grupo ao lojista.');
         return;
       }
       setError('');

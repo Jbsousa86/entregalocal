@@ -49,7 +49,7 @@ export default function CreateDeliveryScreen() {
     return () => unsubscribe();
   }, [navigate]);
 
-  const handlePublish = async () => {
+  const handlePublish = async (publishType = 'single') => {
     if (!pickupAddress || !customerName || !street || !neighborhood) {
       alert('Preencha todos os campos obrigatórios.');
       return;
@@ -59,6 +59,8 @@ export default function CreateDeliveryScreen() {
     try {
       const pickupCode = Math.floor(1000 + Math.random() * 9000).toString();
       const deliveryAddress = `${street}, ${neighborhood}${reference ? ' - ' + reference : ''}`;
+
+      const finalStatus = publishType === 'group' ? 'draft_group' : 'pending';
 
       const docRef = await addDoc(collection(db, 'deliveries'), {
         establishmentId: auth.currentUser.uid,
@@ -73,7 +75,8 @@ export default function CreateDeliveryScreen() {
         observation,
         value: parseFloat(value),
         pickupCode,
-        status: 'pending',
+        status: finalStatus,
+        groupId: null,
         createdAt: serverTimestamp(),
       });
 
@@ -330,14 +333,25 @@ export default function CreateDeliveryScreen() {
           </p>
         </div>
 
-        <button 
-          onClick={handlePublish} 
-          disabled={loading || loadingProfile}
-          className="btn"
-          style={{ height: '64px', fontSize: '1.1rem' }}
-        >
-          {loading ? 'Publicando...' : (loadingProfile ? 'Aguarde...' : 'Confirmar e Publicar')}
-        </button>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <button 
+            onClick={() => handlePublish('single')} 
+            disabled={loading || loadingProfile}
+            className="btn"
+            style={{ height: '64px', fontSize: '1.1rem' }}
+          >
+            {loading ? 'Publicando...' : (loadingProfile ? 'Aguarde...' : 'Publicar como Corrida Única')}
+          </button>
+          
+          <button 
+            onClick={() => handlePublish('group')} 
+            disabled={loading || loadingProfile}
+            className="btn btn-outline"
+            style={{ height: '64px', fontSize: '1rem', borderStyle: 'dashed' }}
+          >
+            Salvar para Agrupar Depois
+          </button>
+        </div>
       </div>
     </div>
   );

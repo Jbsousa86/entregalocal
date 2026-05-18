@@ -38,6 +38,7 @@ export default function CourierHomeScreen() {
   const [courierArea, setCourierArea] = useState('');
   const [photoURL, setPhotoURL] = useState('');
   const [deliveries, setDeliveries] = useState([]);
+  const [deliveryGroups, setDeliveryGroups] = useState([]);
   const [hasActiveDelivery, setHasActiveDelivery] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0); // Para forçar o re-render do listener
   const isInitialLoad = useRef(true);
@@ -169,42 +170,32 @@ export default function CourierHomeScreen() {
       return;
     }
 
-    const q = query(collection(db, 'deliveries'), where('status', '==', 'pending'));
+    const qDeliveries = query(collection(db, 'deliveries'), where('status', '==', 'pending'));
+    const qGroups = query(collection(db, 'delivery_groups'), where('status', '==', 'pending'));
 
-    const unsubscribe = onSnapshot(q, (querySnapshot) => {
-      console.log(`Snapshot recebido: ${querySnapshot.size} pedidos pendentes.`);
+    const unsubscribeDeliveries = onSnapshot(qDeliveries, (querySnapshot) => {
       const list = [];
       querySnapshot.forEach((doc) => {
-        list.push({ id: doc.id, ...doc.data() });
+        // Apenas corridas não agrupadas
+        if (!doc.data().groupId) {
+          list.push({ id: doc.id, isGroup: false, ...doc.data() });
+        }
       });
-
-      // Lógica de notificação mais robusta
-      if (!isInitialLoad.current) {
-        querySnapshot.docChanges().forEach(change => {
-          if (change.type === 'added') {
-            const data = change.doc.data();
-            const id = change.doc.id;
-
-            // Só notifica se ainda não notificamos este ID nesta sessão
-            // E se o pedido foi criado após o carregamento desta tela (evita notificar antigos no refresh)
-            const createdAt = data.createdAt?.toMillis ? data.createdAt.toMillis() : 0;
-
-            if (!notifiedIds.current.has(id) && createdAt > mountTime.current - 5000) {
-              console.log("🔔 Novo pedido detectado:", id);
-              notifiedIds.current.add(id);
-              playNotification();
-            }
-          }
-        });
-      }
-
       setDeliveries(list);
-      isInitialLoad.current = false;
-    }, (error) => {
-      console.error("Erro no listener de entregas:", error);
-    });
+    }, (error) => console.error("Erro no listener de entregas:", error));
 
-    return () => unsubscribe();
+    const unsubscribeGroups = onSnapshot(qGroups, (querySnapshot) => {
+      const list = [];
+      querySnapshot.forEach((doc) => {
+        list.push({ id: doc.id, isGroup: true, ...doc.data() });
+      });
+      setDeliveryGroups(list);
+    }, (error) => console.error("Erro no listener de grupos:", error));
+
+    return () => {
+      unsubscribeDeliveries();
+      unsubscribeGroups();
+    };
   }, [isOnline, refreshKey]);
 
   // 4. Resetar o listener quando o app volta do background (ajuda no mobile)
@@ -225,23 +216,13 @@ export default function CourierHomeScreen() {
     setRefreshKey(prev => prev + 1);
   };
 
-  const deliveriesWithGroupInfo = useMemo(() => {
-    return deliveries.map((item) => {
-      let groupCount = 0;
-      for (const other of deliveries) {
-        if (other.id === item.id) continue;
-        if (other.establishmentId !== item.establishmentId) continue;
-        if (!samePickupAddress(item.pickupAddress, other.pickupAddress)) continue;
-        if (!isNearbyAddress(item.deliveryAddress, other.deliveryAddress)) continue;
-        groupCount += 1;
-        if (groupCount >= 2) break;
-      }
-      return {
-        ...item,
-        groupCount
-      };
+  const combinedDeliveries = useMemo(() => {
+    return [...deliveries, ...deliveryGroups].sort((a, b) => {
+      const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0;
+      const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0;
+      return timeB - timeA;
     });
-  }, [deliveries]);
+  }, [deliveries, deliveryGroups]);
 
   // 4. Verificar se já existe entrega ativa vinculada a este entregador
   useEffect(() => {
@@ -415,7 +396,7 @@ export default function CourierHomeScreen() {
           </div>
         )}
 
-        {isOnline && deliveries.length === 0 && (
+        {isOnline && combinedDeliveries.length === 0 && (
           <div style={{ padding: '40px', textAlign: 'center' }}>
             <div className="loader-container" style={{ position: 'relative', width: '60px', height: '60px', margin: '0 auto 20px' }}>
               <div style={{ position: 'absolute', inset: 0, border: '4px solid var(--primary-light)', borderRadius: '50%' }}></div>
@@ -444,8 +425,14 @@ export default function CourierHomeScreen() {
         )}
 
         <div className="deliveries-list" style={{ opacity: hasActiveDelivery ? 0.5 : 1, pointerEvents: hasActiveDelivery ? 'none' : 'auto' }}>
-          {deliveriesWithGroupInfo.map(item => (
-            <div key={item.id} className="card fade-in" style={{ padding: '24px', marginBottom: '16px' }}>
+          {combinedDeliveries.map(item => (
+            <div key={item.id} className="card fade-in" style={{ padding: '24px', marginBottom: '16px', border: item.isGroup ? '2px solid var(--primary)' : 'none' }}>
+              {item.isGroup && (
+                <div style={{ background: 'var(--primary)', color: 'white', padding: '6px 12px', borderRadius: '12px', display: 'inline-block', fontSize: '0.8rem', fontWeight: '800', marginBottom: '12px' }}>
+                  ROTA DE {item.deliveryIds?.length || 0} ENTREGAS
+                </div>
+              )}
+              
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                   <div style={{ width: '40px', height: '40px', background: 'var(--primary-light)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)' }}>
@@ -454,7 +441,7 @@ export default function CourierHomeScreen() {
                   <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '800' }}>{item.establishmentName || 'Estabelecimento'}</h4>
                 </div>
                 <div style={{ fontSize: '1.25rem', fontWeight: '800', color: 'var(--primary)' }}>
-                  R$ {Number(item.value).toFixed(2).replace('.', ',')}
+                  R$ {Number(item.value || item.totalValue || 0).toFixed(2).replace('.', ',')}
                 </div>
               </div>
 
@@ -469,32 +456,21 @@ export default function CourierHomeScreen() {
                   </div>
                 </div>
                 
-                <div style={{ display: 'flex', gap: '12px' }}>
-                  <div style={{ color: 'var(--accent)', paddingTop: '2px' }}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+                {!item.isGroup && (
+                  <div style={{ display: 'flex', gap: '12px' }}>
+                    <div style={{ color: 'var(--accent)', paddingTop: '2px' }}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+                    </div>
+                    <div style={{ fontSize: '0.85rem' }}>
+                      <div style={{ color: 'var(--text-muted)', fontWeight: '700', fontSize: '0.7rem', textTransform: 'uppercase' }}>Entrega</div>
+                      <div style={{ fontWeight: '600' }}>{item.deliveryAddress}</div>
+                    </div>
                   </div>
-                  <div style={{ fontSize: '0.85rem' }}>
-                    <div style={{ color: 'var(--text-muted)', fontWeight: '700', fontSize: '0.7rem', textTransform: 'uppercase' }}>Entrega</div>
-                    <div style={{ fontWeight: '600' }}>{item.deliveryAddress}</div>
-                  </div>
-                </div>
+                )}
               </div>
 
-              {item.groupCount > 0 && (
-                <div style={{
-                  marginBottom: '16px',
-                  padding: '14px',
-                  borderRadius: '16px',
-                  background: 'rgba(59, 130, 246, 0.08)',
-                  border: '1px solid rgba(59, 130, 246, 0.18)',
-                  color: 'var(--primary)'
-                }}>
-                  Pode ser agrupado com mais {item.groupCount} pedido{item.groupCount > 1 ? 's' : ''} do mesmo estabelecimento.
-                </div>
-              )}
-
               <button 
-                onClick={() => navigate('/courier/delivery-details', { state: { deliveryId: item.id } })}
+                onClick={() => navigate('/courier/delivery-details', { state: item.isGroup ? { groupId: item.id } : { deliveryId: item.id } })}
                 className="btn btn-outline"
                 style={{ width: '100%', height: '50px' }}
               >

@@ -1,15 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { onAuthStateChanged } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, collection, query, where, onSnapshot, addDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '../../firebaseClient';
 import backgroundImage from '../../assets/image.png';
 
 export default function EstablishmentHomeScreen() {
   const [profile, setProfile] = useState(null);
+  const [draftDeliveries, setDraftDeliveries] = useState([]);
+  const [selectedDrafts, setSelectedDrafts] = useState([]);
+  const [grouping, setGrouping] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
+    let unsubscribeDrafts = null;
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         const docRef = doc(db, 'establishments', user.uid);
@@ -17,12 +21,65 @@ export default function EstablishmentHomeScreen() {
         if (docSnap.exists()) {
           setProfile(docSnap.data());
         }
+
+        const q = query(collection(db, 'deliveries'), where('establishmentId', '==', user.uid), where('status', '==', 'draft_group'));
+        unsubscribeDrafts = onSnapshot(q, (snapshot) => {
+          const drafts = [];
+          snapshot.forEach(d => drafts.push({ id: d.id, ...d.data() }));
+          setDraftDeliveries(drafts);
+        });
+
       } else {
         navigate('/establishment/login');
       }
     });
-    return () => unsubscribe();
+    return () => {
+      unsubscribe();
+      if (unsubscribeDrafts) unsubscribeDrafts();
+    }
   }, [navigate]);
+
+  const toggleDraftSelection = (id) => {
+    setSelectedDrafts(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
+
+  const handleGroupAndPublish = async () => {
+    if (selectedDrafts.length < 2) {
+      alert("Selecione pelo menos 2 entregas para agrupar.");
+      return;
+    }
+    setGrouping(true);
+    try {
+      const selectedDocs = draftDeliveries.filter(d => selectedDrafts.includes(d.id));
+      const totalValue = selectedDocs.reduce((acc, curr) => acc + (curr.value || 0), 0);
+      const deliveryIds = selectedDocs.map(d => d.id);
+      
+      const groupRef = await addDoc(collection(db, 'delivery_groups'), {
+        establishmentId: auth.currentUser.uid,
+        establishmentName: profile?.name || 'Estabelecimento',
+        pickupAddress: profile?.address || selectedDocs[0].pickupAddress,
+        deliveryIds,
+        totalValue,
+        status: 'pending',
+        createdAt: serverTimestamp()
+      });
+
+      for (const id of deliveryIds) {
+        await updateDoc(doc(db, 'deliveries', id), {
+          groupId: groupRef.id,
+          status: 'grouped'
+        });
+      }
+
+      setSelectedDrafts([]);
+      alert("Grupo criado e publicado com sucesso!");
+    } catch (error) {
+      console.error(error);
+      alert("Erro ao agrupar entregas.");
+    } finally {
+      setGrouping(false);
+    }
+  };
 
   const ActionButton = ({ onClick, icon, label, sublabel, variant = 'primary' }) => (
     <button 
@@ -202,8 +259,63 @@ export default function EstablishmentHomeScreen() {
           </div>
         </div>
 
+        {/* Agrupamento */}
+        {draftDeliveries.length > 0 && (
+          <div style={{ marginTop: '12px' }}>
+            <h3 style={{ marginBottom: '16px', fontSize: '1.1rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px' }}>
+              Aguardando Agrupamento
+            </h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {draftDeliveries.map(d => (
+                <div 
+                  key={d.id} 
+                  onClick={() => toggleDraftSelection(d.id)}
+                  style={{ 
+                    padding: '16px', 
+                    borderRadius: '12px', 
+                    border: selectedDrafts.includes(d.id) ? '2px solid var(--primary)' : '2px solid var(--surface-muted)',
+                    background: selectedDrafts.includes(d.id) ? 'var(--primary-light)' : 'var(--surface)',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px'
+                  }}
+                >
+                  <div style={{
+                    width: '24px', height: '24px', borderRadius: '50%',
+                    border: '2px solid',
+                    borderColor: selectedDrafts.includes(d.id) ? 'var(--primary)' : 'var(--text-muted)',
+                    background: selectedDrafts.includes(d.id) ? 'var(--primary)' : 'transparent',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center'
+                  }}>
+                    {selectedDrafts.includes(d.id) && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>}
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: '700', color: 'var(--secondary)' }}>{d.customerName}</div>
+                    <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{d.deliveryAddress}</div>
+                  </div>
+                  <div style={{ fontWeight: '800', color: 'var(--primary)' }}>
+                    R$ {Number(d.value || 0).toFixed(2).replace('.', ',')}
+                  </div>
+                </div>
+              ))}
+            </div>
+            
+            {selectedDrafts.length > 0 && (
+               <button 
+                onClick={handleGroupAndPublish}
+                disabled={grouping}
+                className="btn"
+                style={{ marginTop: '16px', width: '100%', padding: '16px' }}
+               >
+                 {grouping ? 'Agrupando...' : `Agrupar e Publicar (${selectedDrafts.length})`}
+               </button>
+            )}
+          </div>
+        )}
+
         {/* Status Quick View */}
-        <div className="glass" style={{ padding: '20px', borderRadius: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div className="glass" style={{ padding: '20px', borderRadius: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px' }}>
           <div>
             <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: '500' }}>Status do dia</div>
             <div style={{ fontSize: '1.25rem', fontWeight: '800', color: 'var(--primary-dark)' }}>Online & Ativo</div>

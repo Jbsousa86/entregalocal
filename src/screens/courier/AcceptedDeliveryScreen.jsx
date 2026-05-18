@@ -61,7 +61,7 @@ export default function AcceptedDeliveryScreen() {
 
     if (newStatus === 'in_progress') {
       if (inputCode !== activeDelivery.pickupCode) {
-        setError('C�digo de coleta incorreto. Pe�a o c�digo ao lojista.');
+        setError('Código de coleta incorreto. Peça o código ao lojista.');
         return;
       }
       setError('');
@@ -69,18 +69,36 @@ export default function AcceptedDeliveryScreen() {
 
     try {
       const updates = { status: newStatus };
-      if (newStatus === 'delivered') {
-        updates.completedAt = serverTimestamp();
-      }
-
       await Promise.all(groupedDeliveries.map((item) => updateDoc(doc(db, 'deliveries', item.id), updates)));
-
-      if (newStatus === 'delivered') {
-        alert('Entrega finalizada!');
-        navigate('/courier/home');
+      
+      if (activeDelivery.groupId) {
+        await updateDoc(doc(db, 'delivery_groups', activeDelivery.groupId), updates);
       }
     } catch (error) {
       console.error('Erro ao atualizar status:', error);
+    }
+  };
+
+  const confirmSingleDelivery = async (deliveryId) => {
+    try {
+      await updateDoc(doc(db, 'deliveries', deliveryId), {
+        status: 'delivered',
+        completedAt: serverTimestamp()
+      });
+
+      if (groupedDeliveries.length === 1) {
+        if (activeDelivery.groupId) {
+          await updateDoc(doc(db, 'delivery_groups', activeDelivery.groupId), {
+            status: 'finished'
+          });
+        }
+        alert('Todas as entregas foram finalizadas!');
+        navigate('/courier/home');
+      } else {
+        alert('Entrega confirmada!');
+      }
+    } catch (error) {
+      console.error('Erro ao confirmar entrega:', error);
     }
   };
 
@@ -274,13 +292,23 @@ export default function AcceptedDeliveryScreen() {
         )}
 
         {activeDelivery.status === 'in_progress' && (
-          <button 
-            onClick={() => updateStatus('delivered')} 
-            className="btn"
-            style={{ height: '60px', fontSize: '1.1rem', background: 'var(--primary-dark)' }}
-          >
-            Finalizar Entrega
-          </button>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '800' }}>Confirmar Entregas ({groupedDeliveries.length})</h3>
+            {groupedDeliveries.map(item => (
+              <div key={item.id} className="card fade-in" style={{ padding: '16px', border: '1px solid var(--border)' }}>
+                <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Destino</div>
+                <div style={{ fontWeight: '700', fontSize: '1rem', marginBottom: '8px' }}>{item.customerName || 'Cliente'}</div>
+                <div style={{ fontWeight: '600', marginBottom: '12px' }}>{item.deliveryAddress}</div>
+                <button 
+                  onClick={() => confirmSingleDelivery(item.id)} 
+                  className="btn"
+                  style={{ width: '100%', height: '50px', background: 'var(--success)' }}
+                >
+                  Confirmar Entrega
+                </button>
+              </div>
+            ))}
+          </div>
         )}
       </div>
     </div>

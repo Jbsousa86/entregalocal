@@ -201,7 +201,7 @@ export default function AcceptedDeliveryScreen() {
 
         {groupSize > 1 && (
           <div style={{ marginTop: '18px', padding: '16px', background: '#f8fafc', borderRadius: '16px', border: '1px solid var(--border)' }}>
-            <p style={{ margin: 0, fontWeight: '700' }}>Total do grupo: R$ {totalValue.replace('.', ',')}</p>
+            <p style={{ margin: 0, fontWeight: '700' }}>Ganho Líquido do grupo: R$ {(Number(totalValue) * 0.9).toFixed(2).replace('.', ',')}</p>
             <p style={{ margin: '8px 0 0', color: 'var(--text-muted)', fontSize: '0.9rem' }}>Este grupo inclui {groupSize} pedidos de entrega.</p>
           </div>
         )}

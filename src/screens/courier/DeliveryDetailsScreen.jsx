@@ -173,9 +173,9 @@ export default function DeliveryDetailsScreen() {
             </div>
           </div>
           <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Pagamento</div>
+            <div style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Ganho Líquido</div>
             <div style={{ fontSize: '1.25rem', fontWeight: '800', color: 'var(--primary)' }}>
-              R$ {Number(displayData.value || displayData.totalValue || 0).toFixed(2).replace('.', ',')}
+              R$ {(Number(displayData.value || displayData.totalValue || 0) * 0.9).toFixed(2).replace('.', ',')}
             </div>
           </div>
         </div>

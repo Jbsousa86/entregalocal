@@ -318,9 +318,23 @@ export default function EstablishmentHomeScreen() {
                    step="0.01"
                    value={customGroupValue} 
                    onChange={e => setCustomGroupValue(e.target.value)}
-                   style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid var(--border)', fontSize: '1.1rem', marginBottom: '16px', outline: 'none' }}
+                   style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid var(--border)', fontSize: '1.1rem', marginBottom: '8px', outline: 'none' }}
                    placeholder="Ex: 15.00"
                  />
+                 
+                 {customGroupValue && parseFloat(customGroupValue) > 0 && (
+                   <div style={{ marginBottom: '16px', background: 'var(--surface-muted)', padding: '12px', borderRadius: '8px' }}>
+                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', fontSize: '0.85rem' }}>
+                       <span style={{ color: 'var(--text-muted)' }}>Repasse ao Entregador (90%):</span>
+                       <span style={{ fontWeight: '800', color: 'var(--primary)' }}>R$ {(parseFloat(customGroupValue) * 0.9).toFixed(2).replace('.', ',')}</span>
+                     </div>
+                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}>
+                       <span style={{ color: 'var(--text-muted)' }}>Taxa da Plataforma (10%):</span>
+                       <span style={{ fontWeight: '800', color: 'var(--secondary)' }}>R$ {(parseFloat(customGroupValue) * 0.1).toFixed(2).replace('.', ',')}</span>
+                     </div>
+                   </div>
+                 )}
+
                  <button 
                   onClick={handleGroupAndPublish}
                   disabled={grouping}

@@ -9,8 +9,15 @@ export default function EstablishmentHomeScreen() {
   const [profile, setProfile] = useState(null);
   const [draftDeliveries, setDraftDeliveries] = useState([]);
   const [selectedDrafts, setSelectedDrafts] = useState([]);
+  const [customGroupValue, setCustomGroupValue] = useState('');
   const [grouping, setGrouping] = useState(false);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const selectedDocs = draftDeliveries.filter(d => selectedDrafts.includes(d.id));
+    const total = selectedDocs.reduce((acc, curr) => acc + (curr.value || 0), 0);
+    setCustomGroupValue(total ? total.toString() : '');
+  }, [selectedDrafts, draftDeliveries]);
 
   useEffect(() => {
     let unsubscribeDrafts = null;
@@ -51,7 +58,7 @@ export default function EstablishmentHomeScreen() {
     setGrouping(true);
     try {
       const selectedDocs = draftDeliveries.filter(d => selectedDrafts.includes(d.id));
-      const totalValue = selectedDocs.reduce((acc, curr) => acc + (curr.value || 0), 0);
+      const totalValue = parseFloat(customGroupValue) || 0;
       const deliveryIds = selectedDocs.map(d => d.id);
       
       const groupRef = await addDoc(collection(db, 'delivery_groups'), {
@@ -302,14 +309,25 @@ export default function EstablishmentHomeScreen() {
             </div>
             
             {selectedDrafts.length > 0 && (
-               <button 
-                onClick={handleGroupAndPublish}
-                disabled={grouping}
-                className="btn"
-                style={{ marginTop: '16px', width: '100%', padding: '16px' }}
-               >
-                 {grouping ? 'Agrupando...' : `Agrupar e Publicar (${selectedDrafts.length})`}
-               </button>
+               <div style={{ marginTop: '16px', padding: '16px', background: 'var(--surface)', borderRadius: '12px', border: '1px solid var(--border)' }}>
+                 <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '700', marginBottom: '8px', color: 'var(--secondary)' }}>Definir Valor da Rota (R$)</label>
+                 <input 
+                   type="number" 
+                   step="0.01"
+                   value={customGroupValue} 
+                   onChange={e => setCustomGroupValue(e.target.value)}
+                   style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid var(--border)', fontSize: '1.1rem', marginBottom: '16px', outline: 'none' }}
+                   placeholder="Ex: 15.00"
+                 />
+                 <button 
+                  onClick={handleGroupAndPublish}
+                  disabled={grouping}
+                  className="btn"
+                  style={{ width: '100%', padding: '16px' }}
+                 >
+                   {grouping ? 'Agrupando...' : `Agrupar e Publicar Rota`}
+                 </button>
+               </div>
             )}
           </div>
         )}

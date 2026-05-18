@@ -57,6 +57,8 @@ export default function ClientTrackingScreen() {
   const getStatusInfo = (status) => {
     switch (status) {
       case 'pending': 
+      case 'draft_group':
+      case 'grouped':
         return { label: 'Aguardando Entregador', emoji: '⏳', description: 'O estabelecimento está aguardando um entregador aceitar a corrida.', color: '#d97706', step: 1 };
       case 'accepted': 
       case 'arrived_pickup':

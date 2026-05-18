@@ -81,7 +81,7 @@ export default function CreateDeliveryScreen() {
       });
 
       const trackingUrl = `${window.location.origin}/rastreio/${docRef.id}`;
-      const text = `Olá ${customerName ? customerName + ',' : ''} recebemos seu pedido e a entrega já foi solicitada! 🛵\nAcompanhe o status da entrega em tempo real pelo link:\n${trackingUrl}`;
+      const text = `Olá ${customerName ? customerName + ',' : ''} recebemos seu pedido e já estamos aguardando um entregador aceitar a corrida! ⏳🛵\nAcompanhe o status da sua entrega em tempo real pelo link:\n${trackingUrl}`;
       
       if (customerPhone) {
         const waUrl = `https://wa.me/55${customerPhone.replace(/\D/g, '')}?text=${encodeURIComponent(text)}`;

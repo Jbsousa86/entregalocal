@@ -217,7 +217,6 @@ export default function AcceptedDeliveryScreen() {
               {item.customerPhone && <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '2px' }}>Tel: {item.customerPhone}</div>}
               <div style={{ fontWeight: '600' }}>{item.deliveryAddress}</div>
               {item.observation && <div style={{ marginTop: '4px', fontSize: '0.85rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>Obs: {item.observation}</div>}
-              <div style={{ marginTop: '6px', fontSize: '0.85rem', color: 'var(--secondary)' }}>R$ {Number(item.value).toFixed(2).replace('.', ',')}</div>
             </div>
           ))}
         </div>

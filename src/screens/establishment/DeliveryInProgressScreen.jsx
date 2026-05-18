@@ -23,7 +23,7 @@ export default function DeliveryInProgressScreen() {
           const list = [];
           snapshot.forEach(doc => {
             const data = doc.data();
-            if (['pending', 'accepted', 'in_progress', 'arrived_pickup'].includes(data.status)) {
+            if (['pending', 'grouped', 'accepted', 'in_progress', 'arrived_pickup'].includes(data.status)) {
               list.push({ id: doc.id, ...data });
             }
           });
@@ -50,6 +50,7 @@ export default function DeliveryInProgressScreen() {
   const getStatusBadge = (status) => {
     switch (status) {
       case 'pending': return { label: 'Aguardando Entregador', bg: '#fef3c7', color: '#d97706' };
+      case 'grouped': return { label: 'Aguardando Entregador (Grupo)', bg: '#fef3c7', color: '#d97706' };
       case 'accepted': return { label: 'A caminho da Loja', bg: '#e0e7ff', color: '#4338ca' };
       case 'arrived_pickup': return { label: 'Entregador no Local', bg: '#f3e8ff', color: '#7e22ce' };
       case 'in_progress': return { label: 'Em Rota de Entrega', bg: '#dcfce7', color: '#15803d' };

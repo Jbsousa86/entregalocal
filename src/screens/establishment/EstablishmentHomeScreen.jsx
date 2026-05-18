@@ -60,6 +60,7 @@ export default function EstablishmentHomeScreen() {
       const selectedDocs = draftDeliveries.filter(d => selectedDrafts.includes(d.id));
       const totalValue = parseFloat(customGroupValue) || 0;
       const deliveryIds = selectedDocs.map(d => d.id);
+      const splitValue = totalValue / deliveryIds.length;
       
       const groupRef = await addDoc(collection(db, 'delivery_groups'), {
         establishmentId: auth.currentUser.uid,
@@ -74,7 +75,8 @@ export default function EstablishmentHomeScreen() {
       for (const id of deliveryIds) {
         await updateDoc(doc(db, 'deliveries', id), {
           groupId: groupRef.id,
-          status: 'grouped'
+          status: 'grouped',
+          value: splitValue
         });
       }
 

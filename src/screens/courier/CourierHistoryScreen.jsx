@@ -241,7 +241,7 @@ export default function CourierHistoryScreen() {
             </svg>
             <span style={{ fontSize: '0.75rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Ganhos</span>
           </div>
-          <div style={{ fontSize: '1.5rem', fontWeight: '800' }}>R$ {stats.totalEarnings.toFixed(2)}</div>
+          <div style={{ fontSize: '1.5rem', fontWeight: '800' }}>R$ {stats.totalEarnings.toFixed(2).replace('.', ',')}</div>
         </div>
       </div>
 

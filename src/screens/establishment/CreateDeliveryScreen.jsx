@@ -331,12 +331,16 @@ export default function CreateDeliveryScreen() {
           {value && parseFloat(value) > 0 ? (
             <div style={{ marginTop: '12px', background: 'var(--surface)', padding: '16px', borderRadius: '12px', border: '1px solid var(--border)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '0.9rem' }}>
-                <span style={{ color: 'var(--text-muted)' }}>Repasse ao Entregador (90%):</span>
-                <span style={{ fontWeight: '800', color: 'var(--primary)' }}>R$ {(parseFloat(value) * 0.9).toFixed(2).replace('.', ',')}</span>
+                <span style={{ color: 'var(--text-muted)' }}>Repasse ao Entregador (100%):</span>
+                <span style={{ fontWeight: '800', color: 'var(--primary)' }}>R$ {parseFloat(value).toFixed(2).replace('.', ',')}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
-                <span style={{ color: 'var(--text-muted)' }}>Taxa da Plataforma (10%):</span>
+                <span style={{ color: 'var(--text-muted)' }}>Taxa da Plataforma (+10%):</span>
                 <span style={{ fontWeight: '800', color: 'var(--secondary)' }}>R$ {(parseFloat(value) * 0.1).toFixed(2).replace('.', ',')}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', marginTop: '8px', paddingTop: '8px', borderTop: '1px solid var(--border)' }}>
+                <span style={{ fontWeight: '700' }}>Custo Total da Entrega:</span>
+                <span style={{ fontWeight: '800' }}>R$ {(parseFloat(value) * 1.1).toFixed(2).replace('.', ',')}</span>
               </div>
             </div>
           ) : (

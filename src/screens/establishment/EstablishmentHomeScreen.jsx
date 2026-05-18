@@ -325,12 +325,16 @@ export default function EstablishmentHomeScreen() {
                  {customGroupValue && parseFloat(customGroupValue) > 0 && (
                    <div style={{ marginBottom: '16px', background: 'var(--surface-muted)', padding: '12px', borderRadius: '8px' }}>
                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', fontSize: '0.85rem' }}>
-                       <span style={{ color: 'var(--text-muted)' }}>Repasse ao Entregador (90%):</span>
-                       <span style={{ fontWeight: '800', color: 'var(--primary)' }}>R$ {(parseFloat(customGroupValue) * 0.9).toFixed(2).replace('.', ',')}</span>
+                       <span style={{ color: 'var(--text-muted)' }}>Repasse ao Entregador (100%):</span>
+                       <span style={{ fontWeight: '800', color: 'var(--primary)' }}>R$ {parseFloat(customGroupValue).toFixed(2).replace('.', ',')}</span>
                      </div>
                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}>
-                       <span style={{ color: 'var(--text-muted)' }}>Taxa da Plataforma (10%):</span>
+                       <span style={{ color: 'var(--text-muted)' }}>Taxa da Plataforma (+10%):</span>
                        <span style={{ fontWeight: '800', color: 'var(--secondary)' }}>R$ {(parseFloat(customGroupValue) * 0.1).toFixed(2).replace('.', ',')}</span>
+                     </div>
+                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', marginTop: '8px', paddingTop: '8px', borderTop: '1px solid var(--border)' }}>
+                       <span style={{ fontWeight: '700' }}>Custo Total da Rota:</span>
+                       <span style={{ fontWeight: '800' }}>R$ {(parseFloat(customGroupValue) * 1.1).toFixed(2).replace('.', ',')}</span>
                      </div>
                    </div>
                  )}

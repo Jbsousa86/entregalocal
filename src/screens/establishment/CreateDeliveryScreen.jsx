@@ -60,7 +60,7 @@ export default function CreateDeliveryScreen() {
       const pickupCode = Math.floor(1000 + Math.random() * 9000).toString();
       const deliveryAddress = `${street}, ${neighborhood}${reference ? ' - ' + reference : ''}`;
 
-      await addDoc(collection(db, 'deliveries'), {
+      const docRef = await addDoc(collection(db, 'deliveries'), {
         establishmentId: auth.currentUser.uid,
         establishmentName,
         pickupAddress,
@@ -76,6 +76,26 @@ export default function CreateDeliveryScreen() {
         status: 'pending',
         createdAt: serverTimestamp(),
       });
+
+      const trackingUrl = `${window.location.origin}/rastreio/${docRef.id}`;
+      const text = `Olá ${customerName ? customerName + ',' : ''} recebemos seu pedido e a entrega já foi solicitada! 🛵\nAcompanhe o status da entrega em tempo real pelo link:\n${trackingUrl}`;
+      
+      if (customerPhone) {
+        const waUrl = `https://wa.me/55${customerPhone.replace(/\D/g, '')}?text=${encodeURIComponent(text)}`;
+        window.open(waUrl, '_blank');
+      } else {
+        if (navigator.share) {
+          navigator.share({
+            title: 'Rastreio do Pedido',
+            text: text,
+            url: trackingUrl
+          }).catch(err => console.error("Erro ao compartilhar", err));
+        } else {
+          navigator.clipboard.writeText(trackingUrl);
+          alert('Link de rastreio copiado para a área de transferência!');
+        }
+      }
+
       navigate('/establishment/home');
     } catch (error) {
       console.error("Erro ao criar entrega:", error);

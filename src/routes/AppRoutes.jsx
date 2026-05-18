@@ -4,6 +4,7 @@ import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-route
 import SplashScreen from '../screens/SplashScreen';
 import LoginScreen from '../screens/LoginScreen';
 import ChooseProfileScreen from '../screens/ChooseProfileScreen';
+import ClientTrackingScreen from '../screens/ClientTrackingScreen';
 // Estabelecimento
 import EstablishmentRegisterScreen from '../screens/establishment/EstablishmentRegisterScreen';
 import EstablishmentHomeScreen from '../screens/establishment/EstablishmentHomeScreen';
@@ -96,6 +97,7 @@ export default function AppRoutes() {
 				<Route path="/" element={<SplashScreenWrapper />} />
 				<Route path="/login" element={<LoginScreenWrapper />} />
 				<Route path="/choose-profile" element={<ChooseProfileScreenWrapper />} />
+				<Route path="/rastreio/:id" element={<ClientTrackingScreen />} />
 
 				{/* Fluxo Estabelecimento */}
 				<Route path="/establishment/register" element={<EstablishmentRegisterWrapper />} />

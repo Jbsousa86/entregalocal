@@ -57,6 +57,25 @@ export default function DeliveryInProgressScreen() {
     }
   };
 
+  const handleShareTracking = (id, customerPhone) => {
+    const url = `${window.location.origin}/rastreio/${id}`;
+    const text = `Acompanhe o status do seu pedido pelo link: ${url}`;
+    
+    if (navigator.share) {
+      navigator.share({
+        title: 'Rastreio do Pedido',
+        text: text,
+        url: url
+      }).catch(err => console.error("Erro ao compartilhar", err));
+    } else if (customerPhone) {
+      const waUrl = `https://wa.me/55${customerPhone.replace(/\D/g, '')}?text=${encodeURIComponent(text)}`;
+      window.open(waUrl, '_blank');
+    } else {
+      navigator.clipboard.writeText(url);
+      alert('Link copiado para a área de transferência!');
+    }
+  };
+
   if (loading) return (
     <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', color: 'var(--primary)' }}>
       <div style={{ width: '40px', height: '40px', border: '4px solid var(--primary-light)', borderTopColor: 'var(--primary)', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
@@ -200,6 +219,17 @@ export default function DeliveryInProgressScreen() {
                     </span>
                   </div>
                 )}
+
+                <button 
+                  onClick={() => handleShareTracking(item.id, item.customerPhone)}
+                  className="btn btn-outline" 
+                  style={{ marginTop: '16px', width: '100%', gap: '8px', padding: '12px' }}
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+                  </svg>
+                  Compartilhar Rastreio
+                </button>
               </div>
             );
           })

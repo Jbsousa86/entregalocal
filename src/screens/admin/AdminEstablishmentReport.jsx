@@ -37,6 +37,7 @@ export default function AdminEstablishmentReport() {
         const establishments = {};
 
         filtered.forEach(d => {
+            if (d.status !== 'delivered') return; // Apenas faturamento e cobrança de entregas concluídas
             const val = parseFloat(d.value) || 0;
             if (d.establishmentId) {
                 if (!establishments[d.establishmentId]) {

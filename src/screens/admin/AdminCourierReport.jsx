@@ -37,6 +37,7 @@ export default function AdminCourierReport() {
         const couriers = {};
 
         filtered.forEach(d => {
+            if (d.status !== 'delivered') return; // Apenas faturamento de entregas concluídas
             const val = parseFloat(d.value) || 0;
             if (d.courierId) {
                 if (!couriers[d.courierId]) {

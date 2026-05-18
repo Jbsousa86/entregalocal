@@ -49,23 +49,26 @@ export default function AdminDashboardScreen() {
 
         filtered.forEach(d => {
             statusCounts[d.status] = (statusCounts[d.status] || 0) + 1;
-            const val = parseFloat(d.value) || 0;
-            totalValue += val;
+            
+            if (d.status === 'delivered') {
+                const val = parseFloat(d.value) || 0;
+                totalValue += val;
 
-            if (d.establishmentId) {
-                if (!establishments[d.establishmentId]) {
-                    establishments[d.establishmentId] = { name: d.establishmentName || 'Unknown', count: 0, value: 0 };
+                if (d.establishmentId) {
+                    if (!establishments[d.establishmentId]) {
+                        establishments[d.establishmentId] = { name: d.establishmentName || 'Unknown', count: 0, value: 0 };
+                    }
+                    establishments[d.establishmentId].count += 1;
+                    establishments[d.establishmentId].value += val;
                 }
-                establishments[d.establishmentId].count += 1;
-                establishments[d.establishmentId].value += val;
-            }
 
-            if (d.courierId) {
-                if (!couriers[d.courierId]) {
-                    couriers[d.courierId] = { name: d.courierName || 'N/A', count: 0, value: 0 };
+                if (d.courierId) {
+                    if (!couriers[d.courierId]) {
+                        couriers[d.courierId] = { name: d.courierName || 'N/A', count: 0, value: 0 };
+                    }
+                    couriers[d.courierId].count += 1;
+                    couriers[d.courierId].value += val;
                 }
-                couriers[d.courierId].count += 1;
-                couriers[d.courierId].value += val;
             }
         });
 

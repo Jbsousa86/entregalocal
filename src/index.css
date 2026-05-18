@@ -77,6 +77,22 @@ body {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  transition: max-width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Telas administrativas e de controle do lojista expandem para desktops e tablets */
+@media (min-width: 768px) {
+  #root:has(.admin-dashboard),
+  #root:has(.admin-report),
+  #root:has(.establishment-home-screen),
+  #root:has(.establishment-wallet-screen),
+  #root:has(.delivery-history-screen),
+  #root:has(.establishment-profile-screen),
+  #root:has(.create-delivery-screen),
+  #root:has(.waiting-courier-screen),
+  #root:has(.delivery-in-progress-screen) {
+    max-width: 1200px;
+  }
 }
 
 h1, h2, h3 {

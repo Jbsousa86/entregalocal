@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, doc, updateDoc, getDocs, serverTimestamp } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth, db } from '../../firebaseClient';
 import { useNavigate } from 'react-router-dom';
@@ -74,6 +74,44 @@ export default function DeliveryInProgressScreen() {
     } else {
       navigator.clipboard.writeText(url);
       alert('Link copiado para a área de transferência!');
+    }
+  };
+
+  const handleCancelDelivery = async (delivery) => {
+    const confirmCancel = window.confirm(
+      "Tem certeza que deseja cancelar esta entrega? Isso removerá a corrida do painel, notificará o entregador e ela não será cobrada."
+    );
+    if (!confirmCancel) return;
+
+    try {
+      // 1. Atualizar o status da entrega individual para 'canceled'
+      const deliveryRef = doc(db, 'deliveries', delivery.id);
+      await updateDoc(deliveryRef, {
+        status: 'canceled',
+        canceledAt: serverTimestamp()
+      });
+
+      // 2. Se a entrega fizer parte de um grupo, verificar as outras entregas do grupo
+      if (delivery.groupId) {
+        const q = query(collection(db, 'deliveries'), where('groupId', '==', delivery.groupId));
+        const snap = await getDocs(q);
+        const groupDeliveries = [];
+        snap.forEach(d => groupDeliveries.push({ id: d.id, ...d.data() }));
+
+        // Se todas as entregas desse grupo agora estiverem canceladas, atualizar o grupo para cancelado
+        const allCanceled = groupDeliveries.every(d => d.status === 'canceled' || d.id === delivery.id);
+        if (allCanceled) {
+          const groupRef = doc(db, 'delivery_groups', delivery.groupId);
+          await updateDoc(groupRef, {
+            status: 'canceled'
+          });
+        }
+      }
+
+      alert("Corrida cancelada com sucesso!");
+    } catch (error) {
+      console.error("Erro ao cancelar corrida:", error);
+      alert("Erro ao cancelar corrida. Tente novamente.");
     }
   };
 
@@ -230,6 +268,32 @@ export default function DeliveryInProgressScreen() {
                     <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
                   </svg>
                   Compartilhar Rastreio
+                </button>
+
+                <button 
+                  onClick={() => handleCancelDelivery(item)}
+                  className="btn btn-outline" 
+                  style={{ 
+                    marginTop: '12px', 
+                    width: '100%', 
+                    gap: '8px', 
+                    padding: '12px',
+                    borderColor: 'var(--error)',
+                    color: 'var(--error)',
+                    backgroundColor: 'transparent',
+                    fontWeight: '700'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = '#fef2f2';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                  }}
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>
+                  </svg>
+                  Cancelar Corrida
                 </button>
               </div>
             );
